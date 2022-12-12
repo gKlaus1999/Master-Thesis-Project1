@@ -73,8 +73,8 @@ class fsm:
 
         #mutate the fsm
     def mutate(self):
-        if mutmode ==1:
-            keys = [strats[p] for p in chostrats]
+        if mutmode == 3:
+            keys = [strats[p] for p in chostrats]+[2]*defs
             key = random.choice(keys)
             if key ==1:
                 self.states = [1]
@@ -108,14 +108,7 @@ class fsm:
                 self.states = [0,1]
                 self.coop = [0,0]
                 self.defect = [0,1]
-        elif mutmode==2:
-            self.states = list(np.random.randint(0,2,self.dim)) #Randomly create the different states. Can be either 1 = cooperate or 0 = defect
-
-            self.coop = list(np.random.randint(0,self.dim,self.dim))  # Randomly create the state changes if opponent cooperates
-
-            self.defect = list(np.random.randint(0,self.dim,self.dim))#Randomly create the state changes if opponent defects
         else:
-
             for i in range(1): #Possibility of multiple mutations
                 x = random.randint(0,3) #Randomly choose one of the four possible mutation types
                 if x==0 and len(self.states)<topcomp:        #add one state
@@ -687,6 +680,7 @@ plt.xlim(0,40)
 plt.ylim(0,20)
 plt.show()
 '''
+
 lines = 'Simulation parameters:'
 with open('C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/siminfo.txt', 'w') as f:
     f.write(lines)
@@ -708,7 +702,10 @@ for i in range(5):
     if i<1:
         pass    
     else:
-        
+        mutmode = 3
+        chostrats=posstrats[1:4]
+        global defs
+        defs = i*2
         pass
 
     print(f"---------{i}----------")
@@ -746,13 +743,14 @@ for rate in metacops:
         chostrats=[posstrats[0]]
     else:
         col="mediumpurple"
-    plt.plot(rate, linewidth=2,color=col)#, label=f'Number of neighbours: {count+2}')
+        chostrats=posstrats[1:4]
+    plt.plot(rate, linewidth=2,color=col, label=f'Defectors: {count*2}')
     first =mpatches.Patch(color="red",label="Agta Network with weights")
     second = mpatches.Patch(color="mediumpurple",label=f"Randomized Agta Network with shuffled weights")
     plt.ylim(0,1)
     plt.ylabel("Cooperation rate")
     plt.xlabel("Generation")
-    plt.legend(loc='upper right', handles=[first, second])
+    plt.legend(loc='upper right')#, handles=[first, second])
     count+=1
 #plt.plot(metacops[0],linewidth=2,color="red")
 plt.savefig("C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/final.png")
