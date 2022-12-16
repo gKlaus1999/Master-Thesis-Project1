@@ -364,7 +364,10 @@ def genNetwPD(players,rounds,alpha,G):
             #adjalpha = alpha**(10/int(G[node][selected_neighbour]['weight'])) #adjust alpha to scale with weight of connection
             r=0
             if kins:
-                r = 0 #Todoo
+                try:
+                    r = R.edges[node,selected_neighbour]['weight'] #Todoo
+                except:
+                    r=0
             temp = iteratedPD(players[node],players[selected_neighbour],alpha, r)  #play iterated PD against selected neighbour
             players[node].points += temp[0]
             players[node].coops += temp[2]
@@ -642,11 +645,19 @@ selcoeff = 0.2
 net = 'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/agtanet.txt'
 G = nx.read_weighted_edgelist(net,nodetype =int) #read in network
 
+Rnet = 'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/Redglist.txt'
+R = nx.read_weighted_edgelist(Rnet, nodetype = int)
+
+
+
 mapping = {}
+pos = nx.spring_layout(G, seed=3113794652)
 nodelist=list(G.nodes)
 for i in range(nx.number_of_nodes(G)):
     mapping[nodelist[i]]=i
 G=nx.relabel_nodes(G, mapping) #relabel nodes 
+R=nx.relabel_nodes(R, mapping)
+
 x=G.edges()
 weights=[]
 for edge in x:
@@ -691,16 +702,16 @@ lines = 'Simulation parameters:'
 with open('C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/siminfo.txt', 'w') as f:
     f.write(lines)
 
-for i in range(5):
+for i in range(2):
     povec=(b,b-c,0,-c)
     selcoeff = 0.4
     mutrate = 0.5
-    topcomp=2
+    topcomp=3
     chostrats=[posstrats[0]]
     mutmode = 0
     rounds=1
-    gens = 1000
-    alpha=0.5
+    gens = 500
+    alpha=0.9
     sims = 100
     kins = 0
     popint=0
@@ -708,12 +719,11 @@ for i in range(5):
     if i<1:
         pass    
     else:
-        
+        kins=1
         pass
 
     print(f"---------{i}----------")
     metacops.append(xsims(topcomp,rounds,gens,alpha,G,sims)) #start simulation
-
     #Write down simulation parameters
     more_lines=[F'Sim num = {i}', F'Rounds = {rounds}',
         F'Generations = {gens}', F'Alpha = {alpha}', F'Simulations = {sims}', 
@@ -734,7 +744,7 @@ for i in range(5):
     for j in range(nx.number_of_edges(G)):  
         mapping[edgelist[j]]=weights[j]
     nx.set_edge_attributes(G, values = mapping, name = 'weight')'''
-    G=shuffleWeights(G)
+    #G=shuffleWeights(G)
     
 
 
@@ -747,8 +757,8 @@ for rate in metacops:
     else:
         col="mediumpurple"
     plt.plot(rate, linewidth=2,color=col)#, label=f'Number of neighbours: {count+2}')
-    first =mpatches.Patch(color="red",label="Agta Network with weights")
-    second = mpatches.Patch(color="mediumpurple",label=f"Randomized Agta Network with shuffled weights")
+    first =mpatches.Patch(color="red",label="No Kinselection")
+    second = mpatches.Patch(color="mediumpurple",label=f"Kinselection")
     plt.ylim(0,1)
     plt.ylabel("Cooperation rate")
     plt.xlabel("Generation")
