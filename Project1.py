@@ -365,7 +365,7 @@ def genNetwPD(players,rounds,alpha,G):
             r=0
             if kins:
                 try:
-                    r = R.edges[node,selected_neighbour]['weight'] #Todoo
+                    r = R.edges[node,selected_neighbour]['weight'] 
                 except:
                     r=0
             temp = iteratedPD(players[node],players[selected_neighbour],alpha, r)  #play iterated PD against selected neighbour
@@ -643,11 +643,17 @@ animate = 0 #1 if we want animation, 0 if not
 ifmoran = 0
 selcoeff = 0.2
 net = 'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/agtanet.txt'
-G = nx.read_weighted_edgelist(net,nodetype =int) #read in network
+G = nx.read_weighted_edgelist(net,nodetype = int) #read in network
 
 Rnet = 'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/Redglist.txt'
 R = nx.read_weighted_edgelist(Rnet, nodetype = int)
 
+
+Hadzanet = 'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/HadzaNetwork/HadzaNet.txt'
+G = nx.read_edgelist(Hadzanet, nodetype=int)
+
+HadzaRnet = 'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/HadzaNetwork/HadzaRnet.txt'
+R = nx.read_weighted_edgelist(HadzaRnet, nodetype=int)
 
 
 mapping = {}
@@ -657,12 +663,13 @@ for i in range(nx.number_of_nodes(G)):
     mapping[nodelist[i]]=i
 G=nx.relabel_nodes(G, mapping) #relabel nodes 
 R=nx.relabel_nodes(R, mapping)
-
+'''
 x=G.edges()
 weights=[]
 for edge in x:
        weights.append(nx.get_edge_attributes(G,'weight')[edge])
 random.shuffle(weights)
+'''
 
 #create comparable random network
 dens=nx.density(G)
@@ -671,7 +678,7 @@ edges=G.number_of_edges()
 #G=nx.gnm_random_graph(size,edges)
 #create comparable small world network
 #G = nx.watts_strogatz_graph(size, int(2*edges/size), 0.1)#int(2*edges/size)
-#nx.set_edge_attributes(G, values = 1, name = 'weight')
+nx.set_edge_attributes(G, values = 1, name = 'weight')
 
 pos = nx.spring_layout(G, seed=3113794652)  # positions for all nodes
 topcomp=3
@@ -706,13 +713,13 @@ for i in range(2):
     povec=(b,b-c,0,-c)
     selcoeff = 0.4
     mutrate = 0.5
-    topcomp=3
+    topcomp=2
     chostrats=[posstrats[0]]
     mutmode = 0
     rounds=1
     gens = 500
     alpha=0.9
-    sims = 100
+    sims = 50
     kins = 0
     popint=0
     mincomp=1
