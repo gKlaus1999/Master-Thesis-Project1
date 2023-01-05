@@ -5,7 +5,7 @@ import matplotlib.patches as mpatches
 
 start=100
 flatresults=[]
-for j in range(5):
+for j in range(2):
     csvFile = pandas.read_csv(F'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/coopstats{j}.csv')
     col = len(csvFile.columns)
     csvFile = csvFile.iloc[:,100:col]
@@ -19,13 +19,13 @@ cols=["blue", "green", "coral", "mediumpurple","red", "mediumpurple","aquamarine
 counter=0
 for res in flatresults:
     if counter<1:
-        col = "red"
+        col = "tomato"
     else:
-        col="mediumpurple"
+        col="mediumaquamarine"
     sns.histplot(data=res, x=res, color=col, kde=True, bins = 100, stat='density')
     counter+=1
-first =mpatches.Patch(color="red",label="Agta Network with weights")
-second = mpatches.Patch(color="mediumpurple",label=f"Randomized Agta Network with shuffled weights")
+first =mpatches.Patch(color="tomato",label="Hadza Network")
+second = mpatches.Patch(color="mediumaquamarine",label=f"Hadza Network with Kin Selection")
 plt.xlabel("Cooperation rate")
 plt.ylabel("Density")
 plt.xlim(0,1)

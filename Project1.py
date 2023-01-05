@@ -9,7 +9,8 @@ from  matplotlib.colors import LinearSegmentedColormap
 import matplotlib.patches as mpatches
 import pandas as pd
 from itertools import combinations
-
+import cProfile
+quit()
 #Create colourmap for network graph
 cmap1=LinearSegmentedColormap.from_list('rg',["r", "w", "g"], N=256)
 
@@ -655,6 +656,8 @@ G = nx.read_edgelist(Hadzanet, nodetype=int)
 HadzaRnet = 'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/HadzaNetwork/HadzaRnet.txt'
 R = nx.read_weighted_edgelist(HadzaRnet, nodetype=int)
 
+largest_cc = max(nx.connected_components(G), key=len)
+G=G.subgraph(largest_cc).copy()
 
 mapping = {}
 pos = nx.spring_layout(G, seed=3113794652)
