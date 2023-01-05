@@ -10,7 +10,7 @@ import matplotlib.patches as mpatches
 import pandas as pd
 from itertools import combinations
 import cProfile
-quit()
+
 #Create colourmap for network graph
 cmap1=LinearSegmentedColormap.from_list('rg',["r", "w", "g"], N=256)
 
@@ -359,7 +359,7 @@ def genNetwPD(players,rounds,alpha,G):
         for node in random_node_list: # for each node in random list
             neighbour_list = []
             temp=0
-            neiweights=[n['weight'] for n in G[node].values()]
+            neiweights=[n['weight'] for n in G[node].values()]#SLOW
             neighbours=list(G[node].keys())
             selected_neighbour = random.choices(neighbours,weights=neiweights)[0] # then selects one neighbour from the list
             #adjalpha = alpha**(10/int(G[node][selected_neighbour]['weight'])) #adjust alpha to scale with weight of connection
@@ -378,7 +378,7 @@ def genNetwPD(players,rounds,alpha,G):
         pl.points = round(sum(pl.points)/len(pl.points),5)
     return(players)        
         
-#Function that simulates gens amount of generations of iterated PD over a network
+#Function that simulates gens amount of ll of iterated PD over a network
 #Input: list with agents, number of rounds per gen, number of generation, continuation prob, network
 #Outpu: cool graphs/animations
 def simNetwPD(players,rounds,gens,alpha,G):
@@ -418,8 +418,9 @@ def simNetwPD(players,rounds,gens,alpha,G):
                 global gen100pop
                 gen100pop=gen100pop+players
 
-        popwatched = popwatch(players)   #check makeup of population
         if animate:
+            popwatched = popwatch(players)   #check makeup of population
+
             axgrid = anfig.add_gridspec(5,4) 
             labels = {n: str(round(players[n].coopratio,2)) for n in range(len(players))} #label all nodes with their respective cooperationratio
             anfig.add_subplot(axgrid[0:3,:])
@@ -649,7 +650,7 @@ G = nx.read_weighted_edgelist(net,nodetype = int) #read in network
 Rnet = 'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/Redglist.txt'
 R = nx.read_weighted_edgelist(Rnet, nodetype = int)
 
-
+'''
 Hadzanet = 'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/HadzaNetwork/HadzaNet.txt'
 G = nx.read_edgelist(Hadzanet, nodetype=int)
 
@@ -658,7 +659,7 @@ R = nx.read_weighted_edgelist(HadzaRnet, nodetype=int)
 
 largest_cc = max(nx.connected_components(G), key=len)
 G=G.subgraph(largest_cc).copy()
-
+'''
 mapping = {}
 pos = nx.spring_layout(G, seed=3113794652)
 nodelist=list(G.nodes)
@@ -712,7 +713,7 @@ lines = 'Simulation parameters:'
 with open('C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/siminfo.txt', 'w') as f:
     f.write(lines)
 
-for i in range(2):
+for i in range(1):
     povec=(b,b-c,0,-c)
     selcoeff = 0.4
     mutrate = 0.5
@@ -731,7 +732,8 @@ for i in range(2):
     else:
         kins=1
         pass
-
+    cProfile.run('xsims(3,2,100,0.9,G,20)', sort='tottime')
+    quit()
     print(f"---------{i}----------")
     metacops.append(xsims(topcomp,rounds,gens,alpha,G,sims)) #start simulation
     #Write down simulation parameters
