@@ -21,11 +21,11 @@ for res in flatresults:
     if counter<1:
         col = "tomato"
     else:
-        col="mediumaquamarine"
+        col="forestgreen"
     sns.histplot(data=res, x=res, color=col, kde=True, bins = 100, stat='density')
     counter+=1
 first =mpatches.Patch(color="tomato",label="Hadza Network")
-second = mpatches.Patch(color="mediumaquamarine",label=f"Hadza Network with Kin Selection")
+second = mpatches.Patch(color="forestgreen",label=f"Random Network")
 plt.xlabel("Cooperation rate")
 plt.ylabel("Density")
 plt.xlim(0,1)

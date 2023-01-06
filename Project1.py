@@ -9,7 +9,7 @@ from  matplotlib.colors import LinearSegmentedColormap
 import matplotlib.patches as mpatches
 import pandas as pd
 from itertools import combinations
-import cProfile
+#import cProfile
 
 #Create colourmap for network graph
 cmap1=LinearSegmentedColormap.from_list('rg',["r", "w", "g"], N=256)
@@ -637,6 +637,24 @@ def shuffleWeights(G):
 
     return(G)
 
+#Funtion that gets the Weights of a network
+#Input: Network
+#Output: list with all the weights
+def getWeights(R):
+    weights=nx.get_edge_attributes(R,'weight')
+    weights=list(weights.values())
+    random.shuffle(weights)
+    return(weights)
+
+#Function that adds weights to a network
+#Input: Weights and network
+#Output: Network with weights
+def addWeights(weights,G):
+    mapping = {}
+    edgelist=list(G.edges)
+    mapping=dict(zip(edgelist,weights))
+    nx.set_edge_attributes(G, values = mapping, name = 'weight')
+    return(G)
 
 #defines the payoffmatrix for a symmetric game
 povec=(5,3,1,0)
@@ -649,7 +667,6 @@ G = nx.read_weighted_edgelist(net,nodetype = int) #read in network
 
 Rnet = 'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/Redglist.txt'
 R = nx.read_weighted_edgelist(Rnet, nodetype = int)
-
 '''
 Hadzanet = 'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/HadzaNetwork/HadzaNet.txt'
 G = nx.read_edgelist(Hadzanet, nodetype=int)
@@ -659,7 +676,9 @@ R = nx.read_weighted_edgelist(HadzaRnet, nodetype=int)
 
 largest_cc = max(nx.connected_components(G), key=len)
 G=G.subgraph(largest_cc).copy()
+
 '''
+
 mapping = {}
 pos = nx.spring_layout(G, seed=3113794652)
 nodelist=list(G.nodes)
@@ -667,30 +686,32 @@ for i in range(nx.number_of_nodes(G)):
     mapping[nodelist[i]]=i
 G=nx.relabel_nodes(G, mapping) #relabel nodes 
 R=nx.relabel_nodes(R, mapping)
-'''
-x=G.edges()
-weights=[]
-for edge in x:
-       weights.append(nx.get_edge_attributes(G,'weight')[edge])
-random.shuffle(weights)
-'''
 
-#create comparable random network
+#create comparable networks for the relationship network
+Rdens=nx.density(R)
+Rsize=R.number_of_nodes()
+Redges=R.number_of_edges()
+Rweights=getWeights(R)
+
+#create comparable networks for the social network
 dens=nx.density(G)
 size=G.number_of_nodes()
 edges=G.number_of_edges()
+weights=getWeights(G)
+
+#create comparable small world network
+#G = nx.watts_strogatz_graph(Rsize, int(2*Redges/Rsize), 0.1)#int(2*edges/size)
+
+#R=nx.gnm_random_graph(Rsize,Redges)
+#create comparable random network
+
 #G=nx.gnm_random_graph(size,edges)
 #create comparable small world network
 #G = nx.watts_strogatz_graph(size, int(2*edges/size), 0.1)#int(2*edges/size)
-nx.set_edge_attributes(G, values = 1, name = 'weight')
+#nx.set_edge_attributes(G, values = 1, name = 'weight')
 
 pos = nx.spring_layout(G, seed=3113794652)  # positions for all nodes
-topcomp=3
-metacops=[]
-alphas =[0.5,0.7,0.8,0.9, 0.95, 0.99]
-b = 5
-c = 1
-mutmode=0
+
 
 posstrats=["nFSM","AC","AD","TfT","WsLs","G","Ex","susC","smEx"]
 strats=dict(nFSM=0,AC=1,AD=2,TfT=3,WsLs=4,G=5,Ex=6,susC=7,smEx=8)
@@ -712,28 +733,29 @@ plt.show()
 lines = 'Simulation parameters:'
 with open('C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/siminfo.txt', 'w') as f:
     f.write(lines)
-
-for i in range(1):
+metacops=[]
+for i in range(5):
+    b = 5
+    c = 1
     povec=(b,b-c,0,-c)
     selcoeff = 0.4
     mutrate = 0.5
     topcomp=2
     chostrats=[posstrats[0]]
     mutmode = 0
-    rounds=1
+    rounds=2
     gens = 500
     alpha=0.9
-    sims = 50
-    kins = 0
+    sims = 100
+    kins = 1
     popint=0
     mincomp=1
     if i<1:
         pass    
     else:
-        kins=1
+        R=nx.gnm_random_graph(Rsize,Redges)
+        R=addWeights(Rweights,R)
         pass
-    cProfile.run('xsims(3,2,100,0.9,G,20)', sort='tottime')
-    quit()
     print(f"---------{i}----------")
     metacops.append(xsims(topcomp,rounds,gens,alpha,G,sims)) #start simulation
     #Write down simulation parameters
@@ -748,14 +770,9 @@ for i in range(1):
             f.write('\n')
 
 
-    '''G = nx.watts_strogatz_graph(size, int(2*edges/size), 0.1)#int(edges/size)
+    #G = nx.watts_strogatz_graph(size, int(2*edges/size), 0.1)#int(edges/size)
     #G=nx.gnm_random_graph(size,edges)
-    nx.set_edge_attributes(G, values = 1, name = 'weight')
-    mapping = {}
-    edgelist=list(G.edges)
-    for j in range(nx.number_of_edges(G)):  
-        mapping[edgelist[j]]=weights[j]
-    nx.set_edge_attributes(G, values = mapping, name = 'weight')'''
+    #nx.set_edge_attributes(G, values = 1, name = 'weight')
     #G=shuffleWeights(G)
     
 
@@ -764,13 +781,13 @@ count=0
 
 for rate in metacops:
     if count<1:
-        col="red"
+        col="mediumpurple"
         chostrats=[posstrats[0]]
     else:
-        col="mediumpurple"
+        col="goldenrod"
     plt.plot(rate, linewidth=2,color=col)#, label=f'Number of neighbours: {count+2}')
-    first =mpatches.Patch(color="red",label="No Kinselection")
-    second = mpatches.Patch(color="mediumpurple",label=f"Kinselection")
+    first =mpatches.Patch(color="mediumpurple",label="Agda network with weights with kin selection")
+    second = mpatches.Patch(color="goldenrod",label=f"Agda network with weights with random kin selection")
     plt.ylim(0,1)
     plt.ylabel("Cooperation rate")
     plt.xlabel("Generation")
