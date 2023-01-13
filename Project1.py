@@ -303,6 +303,35 @@ def popwatch(players):
     playercomp.sort(reverse=True,key = lambda player: player[1]) #sort nested list by occurences
     return(playercomp)
 
+#Function that shuffles the weights in a network
+#Input: Network with weights
+#Output: Network with mixed weights
+def shuffleWeights(G):
+    weights=getWeights(G)
+    random.shuffle(weights)
+
+    addWeights(weights,G)
+    return(G)
+
+#Funtion that gets the Weights of a network
+#Input: Network
+#Output: list with all the weights
+def getWeights(R):
+    weights=nx.get_edge_attributes(R,'weight')
+    weights=list(weights.values())
+    random.shuffle(weights)
+    return(weights)
+
+#Function that adds weights to a network
+#Input: Weights and network
+#Output: Network with weights
+def addWeights(weights,G):
+    mapping = {}
+    edgelist=list(G.edges)
+    mapping=dict(zip(edgelist,weights))
+    nx.set_edge_attributes(G, values = mapping, name = 'weight')
+    return(G)
+ 
 #Function that simulates one round of PD
 #Input: two agents
 #Output: result for both players, updated state of player A
@@ -450,10 +479,15 @@ def simNetwPD(players,rounds,gens,alpha,G):
     
     return(nodescoop)#genscoops)
 
+#Function that simulates sim amount of simNetwPD
+#Input: Complexity, number of rounds per gen, continuation prob, number of generations, Network
+#Output: cool graphs/animations
 def xsims(comp,rounds, gens, alpha, G, sims):
     coopstats =np.zeros((sims,gens))
     nodecoopstats = np.zeros((sims,nx.number_of_nodes(G)))
     finalpop=[]
+
+    #If there is interest in the population dynamics, keeps all the players at different times
     if popint:
         global gen10pop
         gen10pop=[]
@@ -461,20 +495,21 @@ def xsims(comp,rounds, gens, alpha, G, sims):
         gen20pop=[]
         global gen30pop
         gen30pop=[]
-
         global gen40pop
         gen40pop=[]
         global gen50pop
         gen50pop=[]
-
         global gen100pop
         gen100pop=[]
     plt.clf() #prepare plot
     figfsm.set_figwidth(15)
     figfsm.set_figheight(10)
+
+    #main loop that runs all the simulations
     for sim in range(sims):
         print(sim)
         agents=[]
+        #create the agents for the simulation
         for j in range(nx.number_of_nodes(G)):
             agents.append(fsm(comp))       #Randomly create nodes
         nodescoop=simNetwPD(agents,rounds,gens,alpha,G)
@@ -490,6 +525,8 @@ def xsims(comp,rounds, gens, alpha, G, sims):
         sdcoop.append(statistics.stdev(coopstats[:,gen]))
     avcoop=np.asarray(avcoop)
     sdcoop=np.asarray(sdcoop)
+    
+    #create final plot
     plt.plot(avcoop, linewidth=3, color="red")
     plt.plot(avcoop+sdcoop,linewidth=2, color="red", linestyle="dashed")
     plt.plot(avcoop-sdcoop,linewidth=2, color="red", linestyle="dashed")
@@ -500,6 +537,7 @@ def xsims(comp,rounds, gens, alpha, G, sims):
     plt.savefig(fname)  
     plt.clf()
 
+    #create plot of final population
     figfsm.set_figwidth(4)
     figfsm.set_figheight(15)
     axgridfsm = figfsm.add_gridspec(5,1) 
@@ -512,6 +550,8 @@ def xsims(comp,rounds, gens, alpha, G, sims):
     fname = F"C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/sim_{i}_endpop.png"
     plt.savefig(fname)  
     plt.clf()
+
+    #if interest in population dynamics, plot all the pops at different times
     if popint:
         figfsm.set_figwidth(4)
         figfsm.set_figheight(15)
@@ -594,7 +634,7 @@ def xsims(comp,rounds, gens, alpha, G, sims):
 
     figfsm.set_figwidth(15)
     figfsm.set_figheight(10)
-    #plot the average cooperativness of the nodes
+    #plot the average cooperativness of the nodes related to their degrees
     numneighs = [G.degree[node] for node in range(len(G))]
     plt.scatter(numneighs,avnodecoop)
     plt.xlabel("Number of neighbours")
@@ -608,7 +648,7 @@ def xsims(comp,rounds, gens, alpha, G, sims):
 
     figfsm.set_figwidth(15)
     figfsm.set_figheight(10)
-    #plot the average cooperativness of the nodes
+    #plot the average cooperativness of the nodes in the network
     labels = {n: str(round(avnodecoop[n],2)) for n in range(len(agents))} #label all nodes with their respective cooperationratio
     nx.draw_networkx_nodes(G,pos,node_color=[avnodecoop[n] for n in range(nx.number_of_nodes(G))],cmap = cmap1,vmin=0,vmax=1)
     nx.draw_networkx_edges(G,pos)
@@ -616,69 +656,45 @@ def xsims(comp,rounds, gens, alpha, G, sims):
     fname = F"C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/networksim_{i}.png"
     plt.savefig(fname)  
     plt.clf()
+
     #save coopstats:
     DF = pd.DataFrame(coopstats)
     DF.to_csv(F"C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/coopstats{i}.csv")
     return(avcoop)
     #plt.show()
 
-def shuffleWeights(G):
-    x=G.edges()
-    weights=[]
-    for edge in x:
-        weights.append(nx.get_edge_attributes(G,'weight')[edge])
-    random.shuffle(weights)
-
-    mapping = {}
-    edgelist=list(G.edges)
-    for i in range(nx.number_of_edges(G)):
-        mapping[edgelist[i]]=weights[i]
-    nx.set_edge_attributes(G, values = mapping, name = 'weight')
-
-    return(G)
-
-#Funtion that gets the Weights of a network
-#Input: Network
-#Output: list with all the weights
-def getWeights(R):
-    weights=nx.get_edge_attributes(R,'weight')
-    weights=list(weights.values())
-    random.shuffle(weights)
-    return(weights)
-
-#Function that adds weights to a network
-#Input: Weights and network
-#Output: Network with weights
-def addWeights(weights,G):
-    mapping = {}
-    edgelist=list(G.edges)
-    mapping=dict(zip(edgelist,weights))
-    nx.set_edge_attributes(G, values = mapping, name = 'weight')
-    return(G)
-
-#defines the payoffmatrix for a symmetric game
-povec=(5,3,1,0)
-
 animate = 0 #1 if we want animation, 0 if not
 ifmoran = 0
-selcoeff = 0.2
+
 net = 'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/agtanet.txt'
 G = nx.read_weighted_edgelist(net,nodetype = int) #read in network
 
 Rnet = 'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/Redglist.txt'
 R = nx.read_weighted_edgelist(Rnet, nodetype = int)
 '''
-Hadzanet = 'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/HadzaNetwork/HadzaNet.txt'
+Hadzanet = 'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/HadzaNetwork/HoneyHadza.txt'
 G = nx.read_edgelist(Hadzanet, nodetype=int)
 
-HadzaRnet = 'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/HadzaNetwork/HadzaRnet.txt'
+HadzaRnet = 'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/HadzaNetwork/HoneyRHadza.txt'
 R = nx.read_weighted_edgelist(HadzaRnet, nodetype=int)
 
 largest_cc = max(nx.connected_components(G), key=len)
 G=G.subgraph(largest_cc).copy()
-
+nx.set_edge_attributes(G, values = 1, name = 'weight')
 '''
 
+'''
+Hadzanet = 'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/HadzaNetwork/CampHadza.txt'
+G = nx.read_edgelist(Hadzanet, nodetype=int)
+
+HadzaRnet = 'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/HadzaNetwork/CampRHadza.txt'
+R = nx.read_weighted_edgelist(HadzaRnet, nodetype=int)
+
+largest_cc = max(nx.connected_components(G), key=len)
+G=G.subgraph(largest_cc).copy()
+nx.set_edge_attributes(G, values = 1, name = 'weight')
+'''
+  
 mapping = {}
 pos = nx.spring_layout(G, seed=3113794652)
 nodelist=list(G.nodes)
@@ -700,7 +716,7 @@ edges=G.number_of_edges()
 weights=getWeights(G)
 
 #create comparable small world network
-#G = nx.watts_strogatz_graph(Rsize, int(2*Redges/Rsize), 0.1)#int(2*edges/size)
+G = nx.watts_strogatz_graph(Rsize, int(2*Redges/Rsize), 0)#int(2*edges/size)
 
 #R=nx.gnm_random_graph(Rsize,Redges)
 #create comparable random network
@@ -708,7 +724,7 @@ weights=getWeights(G)
 #G=nx.gnm_random_graph(size,edges)
 #create comparable small world network
 #G = nx.watts_strogatz_graph(size, int(2*edges/size), 0.1)#int(2*edges/size)
-#nx.set_edge_attributes(G, values = 1, name = 'weight')
+nx.set_edge_attributes(G, values = 1, name = 'weight')
 
 pos = nx.spring_layout(G, seed=3113794652)  # positions for all nodes
 
@@ -730,6 +746,7 @@ plt.xlim(0,40)
 plt.ylim(0,20)
 plt.show()
 '''
+Sapls=[]
 lines = 'Simulation parameters:'
 with open('C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/siminfo.txt', 'w') as f:
     f.write(lines)
@@ -740,21 +757,24 @@ for i in range(5):
     povec=(b,b-c,0,-c)
     selcoeff = 0.4
     mutrate = 0.5
-    topcomp=2
+    topcomp=3
     chostrats=[posstrats[0]]
     mutmode = 0
-    rounds=2
+    rounds=1
     gens = 500
     alpha=0.9
     sims = 100
-    kins = 1
+    kins = 0
     popint=0
     mincomp=1
+
+    Sapls.append(nx.average_shortest_path_length(G))
     if i<1:
         pass    
     else:
-        R=nx.gnm_random_graph(Rsize,Redges)
-        R=addWeights(Rweights,R)
+        G = nx.watts_strogatz_graph(size, int(2*edges/size), 0.02*(i))#int(edges/size)
+        #G=nx.gnm_random_graph(size,edges)
+        nx.set_edge_attributes(G, values = 1, name = 'weight')
         pass
     print(f"---------{i}----------")
     metacops.append(xsims(topcomp,rounds,gens,alpha,G,sims)) #start simulation
@@ -780,18 +800,18 @@ for i in range(5):
 count=0
 
 for rate in metacops:
-    if count<1:
+    if count<1: 
         col="mediumpurple"
         chostrats=[posstrats[0]]
     else:
         col="goldenrod"
-    plt.plot(rate, linewidth=2,color=col)#, label=f'Number of neighbours: {count+2}')
-    first =mpatches.Patch(color="mediumpurple",label="Agda network with weights with kin selection")
-    second = mpatches.Patch(color="goldenrod",label=f"Agda network with weights with random kin selection")
+    plt.plot(rate, linewidth=2, label=f'SAPL: {Sapls[count]}')
+    first =mpatches.Patch(color="mediumpurple",label="Weighted Agda network with kin selection")
+    second = mpatches.Patch(color="goldenrod",label=f"Weighted Agda network with randomized kin selection")
     plt.ylim(0,1)
     plt.ylabel("Cooperation rate")
     plt.xlabel("Generation")
-    plt.legend(loc='upper right', handles=[first, second])
+    plt.legend(loc='upper right')#, handles=[first, second])
     count+=1
 #plt.plot(metacops[0],linewidth=2,color="red")
 plt.savefig("C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/final.png")
