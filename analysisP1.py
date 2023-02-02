@@ -2,6 +2,7 @@ import pandas
 from matplotlib import pyplot as plt
 import seaborn as sns
 import matplotlib.patches as mpatches
+import statistics
 
 flatresults=[]
 for j in range(101):
@@ -20,6 +21,10 @@ flatresults = [flatresults[0], second]
 sns.set(style="darkgrid")
 cols=["blue", "green", "coral", "mediumpurple", "red", "mediumpurple", "aquamarine", "indigo", "palegreen", "yellow"]
 
+lines = 'Statistical Results:'
+with open('C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/Stats.txt', 'w') as f:
+    f.write(lines)
+
 counter=0
 for res in flatresults:
     if counter<1:
@@ -27,6 +32,15 @@ for res in flatresults:
     else:
         col="green"
     sns.histplot(data=res, x=res, color=col, kde=True, bins = 100, stat='density')
+
+    mean=statistics.mean(res)
+    var=statistics.stdev(res)
+
+    more_lines=[f"Run number {counter}", f"Mean = {mean}", f"Standard deviation = {var}"]
+    with open('C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/stats.txt', 'a') as f:
+        for line in more_lines:
+            f.write(line)
+            f.write('\n')
     counter+=1
 first =mpatches.Patch(color="red",label="Hadza Honey Network")
 second = mpatches.Patch(color="green",label=f"Randomized Hadza Honey Networks")

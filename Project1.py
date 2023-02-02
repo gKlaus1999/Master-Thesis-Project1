@@ -748,7 +748,7 @@ lines = 'Simulation parameters:'
 with open('C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/siminfo.txt', 'w') as f:
     f.write(lines)
 metacops=[]
-for i in range(101):
+for i in range(17):
     b = 5
     c = 1
     povec=(b,b-c,0,-c)
@@ -758,9 +758,9 @@ for i in range(101):
     chostrats=[posstrats[0]]
     mutmode = 0
     rounds=1
-    gens = 250
+    gens = 500
     alpha=0.9
-    sims = 1000
+    sims = 10
     kins = 0
     popint=0
     mincomp=1
@@ -770,15 +770,15 @@ for i in range(101):
     #G = addWeights(weights,G)
     pos = nx.spring_layout(G, seed=3113794652)
     
-    if i<1:
+    if i<0:
         pass    
     else:
-        sims=10
-        net = f'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/HadzaHRanNet/HadzaHRan{i-1}.txt'
+        
+        net = f'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/SMWnets/smw{i}.txt'
         G = nx.read_weighted_edgelist(net,nodetype = int) #read in network
         #G = nx.watts_strogatz_graph(size, int(2*edges/size), 0.02*(i))#int(edges/size)
         #G=nx.gnm_random_graph(size,edges)
-        #nx.set_edge_attributes(G, values = 1, name = 'weight')
+        nx.set_edge_attributes(G, values = 1, name = 'weight')
         pos = nx.spring_layout(G, seed=3113794652)  # positions for all nodes
         #G = addWeights(weights,G)
         
@@ -812,14 +812,14 @@ for rate in metacops:
         chostrats=[posstrats[0]]
     else:
         col="green"
-    plt.plot(rate, color=col,linewidth=2)#, label=f'SAPL: {Sapls[count]}')
+    plt.plot(rate, color=col,linewidth=2, label=f'Run: {count}')
     first =mpatches.Patch(color="red",label=f"Hadza Honey Network")
     second = mpatches.Patch(color="green",label=f"Randomized Hadza Honey Networks")
     plt.ylim(0,1)
     plt.ylabel("Cooperation rate")
     plt.xlabel("Generation")
-    plt.legend(loc='upper right', handles=[first, second])
-    plt.title("Hadza Honey network to randomized Hadza Honey network")
+    plt.legend(loc='upper right')#, handles=[first, second])
+    plt.title("Different Small World Networks")
     count+=1
 plt.plot(metacops[0],linewidth=2,color="red")
 plt.savefig("C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/final.png")
