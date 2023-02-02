@@ -253,7 +253,6 @@ def NWrepopulate(players,G):
         players[i].points = 0 #reset points to zero for next generation
     return players
 
-
 #Function that visualizes a Finite State machine
 #Input: finite state machine
 #Output: graph of finite state machine
@@ -671,29 +670,28 @@ G = nx.read_weighted_edgelist(net,nodetype = int) #read in network
 
 Rnet = 'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/Redglist.txt'
 R = nx.read_weighted_edgelist(Rnet, nodetype = int)
-'''
+
 Hadzanet = 'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/HadzaNetwork/HoneyHadza.txt'
-G = nx.read_edgelist(Hadzanet, nodetype=int)
+G = nx.read_weighted_edgelist(Hadzanet, nodetype=int)
 
 HadzaRnet = 'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/HadzaNetwork/HoneyRHadza.txt'
 R = nx.read_weighted_edgelist(HadzaRnet, nodetype=int)
-
+'''
 largest_cc = max(nx.connected_components(G), key=len)
 G=G.subgraph(largest_cc).copy()
 nx.set_edge_attributes(G, values = 1, name = 'weight')
-'''
 
-'''
+ 
 Hadzanet = 'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/HadzaNetwork/CampHadza.txt'
 G = nx.read_edgelist(Hadzanet, nodetype=int)
 
 HadzaRnet = 'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/HadzaNetwork/CampRHadza.txt'
 R = nx.read_weighted_edgelist(HadzaRnet, nodetype=int)
 
-largest_cc = max(nx.connected_components(G), key=len)
-G=G.subgraph(largest_cc).copy()
-nx.set_edge_attributes(G, values = 1, name = 'weight')
-'''
+largest_cc = min(nx.connected_components(G), key=len)
+G=G.subgraph(largest_cc).copy()'''
+#nx.set_edge_attributes(G, values = 1, name = 'weight')
+
   
 mapping = {}
 pos = nx.spring_layout(G, seed=3113794652)
@@ -716,7 +714,7 @@ edges=G.number_of_edges()
 weights=getWeights(G)
 
 #create comparable small world network
-G = nx.watts_strogatz_graph(Rsize, int(2*Redges/Rsize), 0)#int(2*edges/size)
+#G = nx.watts_strogatz_graph(Rsize, int(2*Redges/Rsize), 0)#int(2*edges/size)
 
 #R=nx.gnm_random_graph(Rsize,Redges)
 #create comparable random network
@@ -724,7 +722,7 @@ G = nx.watts_strogatz_graph(Rsize, int(2*Redges/Rsize), 0)#int(2*edges/size)
 #G=nx.gnm_random_graph(size,edges)
 #create comparable small world network
 #G = nx.watts_strogatz_graph(size, int(2*edges/size), 0.1)#int(2*edges/size)
-nx.set_edge_attributes(G, values = 1, name = 'weight')
+#nx.set_edge_attributes(G, values = 1, name = 'weight')
 
 pos = nx.spring_layout(G, seed=3113794652)  # positions for all nodes
 
@@ -746,12 +744,11 @@ plt.xlim(0,40)
 plt.ylim(0,20)
 plt.show()
 '''
-Sapls=[]
 lines = 'Simulation parameters:'
 with open('C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/siminfo.txt', 'w') as f:
     f.write(lines)
 metacops=[]
-for i in range(5):
+for i in range(101):
     b = 5
     c = 1
     povec=(b,b-c,0,-c)
@@ -761,20 +758,30 @@ for i in range(5):
     chostrats=[posstrats[0]]
     mutmode = 0
     rounds=1
-    gens = 500
+    gens = 250
     alpha=0.9
-    sims = 100
+    sims = 1000
     kins = 0
     popint=0
     mincomp=1
 
-    Sapls.append(nx.average_shortest_path_length(G))
+    #G = nx.watts_strogatz_graph(size, int(2*edges/size), 0.1)#int(2*edges/size)
+    #nx.set_edge_attributes(G, values = 1, name = 'weight')
+    #G = addWeights(weights,G)
+    pos = nx.spring_layout(G, seed=3113794652)
+    
     if i<1:
         pass    
     else:
-        G = nx.watts_strogatz_graph(size, int(2*edges/size), 0.02*(i))#int(edges/size)
+        sims=10
+        net = f'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/HadzaHRanNet/HadzaHRan{i-1}.txt'
+        G = nx.read_weighted_edgelist(net,nodetype = int) #read in network
+        #G = nx.watts_strogatz_graph(size, int(2*edges/size), 0.02*(i))#int(edges/size)
         #G=nx.gnm_random_graph(size,edges)
-        nx.set_edge_attributes(G, values = 1, name = 'weight')
+        #nx.set_edge_attributes(G, values = 1, name = 'weight')
+        pos = nx.spring_layout(G, seed=3113794652)  # positions for all nodes
+        #G = addWeights(weights,G)
+        
         pass
     print(f"---------{i}----------")
     metacops.append(xsims(topcomp,rounds,gens,alpha,G,sims)) #start simulation
@@ -801,18 +808,19 @@ count=0
 
 for rate in metacops:
     if count<1: 
-        col="mediumpurple"
+        col="red"
         chostrats=[posstrats[0]]
     else:
-        col="goldenrod"
-    plt.plot(rate, linewidth=2, label=f'SAPL: {Sapls[count]}')
-    first =mpatches.Patch(color="mediumpurple",label="Weighted Agda network with kin selection")
-    second = mpatches.Patch(color="goldenrod",label=f"Weighted Agda network with randomized kin selection")
+        col="green"
+    plt.plot(rate, color=col,linewidth=2)#, label=f'SAPL: {Sapls[count]}')
+    first =mpatches.Patch(color="red",label=f"Hadza Honey Network")
+    second = mpatches.Patch(color="green",label=f"Randomized Hadza Honey Networks")
     plt.ylim(0,1)
     plt.ylabel("Cooperation rate")
     plt.xlabel("Generation")
-    plt.legend(loc='upper right')#, handles=[first, second])
+    plt.legend(loc='upper right', handles=[first, second])
+    plt.title("Hadza Honey network to randomized Hadza Honey network")
     count+=1
-#plt.plot(metacops[0],linewidth=2,color="red")
+plt.plot(metacops[0],linewidth=2,color="red")
 plt.savefig("C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/final.png")
 

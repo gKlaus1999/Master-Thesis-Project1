@@ -3,9 +3,8 @@ from matplotlib import pyplot as plt
 import seaborn as sns
 import matplotlib.patches as mpatches
 
-start=100
 flatresults=[]
-for j in range(5):
+for j in range(101):
     csvFile = pandas.read_csv(F'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/coopstats{j}.csv')
     col = len(csvFile.columns)
     csvFile = csvFile.iloc[:,100:col]
@@ -13,21 +12,27 @@ for j in range(5):
     flatresults.append([item for sublist in x for item in sublist])
 
 
+#first=[item for sublist in flatresults[0:99] for item in sublist]
+second = [item for sublist in flatresults[1:101] for item in sublist]
+
+flatresults = [flatresults[0], second]
+
 sns.set(style="darkgrid")
 cols=["blue", "green", "coral", "mediumpurple", "red", "mediumpurple", "aquamarine", "indigo", "palegreen", "yellow"]
 
 counter=0
 for res in flatresults:
     if counter<1:
-        col = "forestgreen"
+        col = "red"
     else:
-        col="orange"
-    sns.histplot(data=res, x=res, color=cols[counter], kde=True, bins = 100, stat='density')
+        col="green"
+    sns.histplot(data=res, x=res, color=col, kde=True, bins = 100, stat='density')
     counter+=1
-first =mpatches.Patch(color="forestgreen",label="Weighted Hadza network with original Kin selection")
-second = mpatches.Patch(color="orange",label=f"Weighted Hadza network with randomized Kin selection")
+first =mpatches.Patch(color="red",label="Hadza Honey Network")
+second = mpatches.Patch(color="green",label=f"Randomized Hadza Honey Networks")
 plt.xlabel("Cooperation rate")
 plt.ylabel("Density")
 plt.xlim(0,1)
-#plt.legend(loc='upper right', handles=[first, second]) 
+plt.legend(loc='upper right', handles=[first, second]) 
+plt.title("Comparison of the Honey Hadza Network vs 100 Randomized Hadza Honey Networks")
 plt.show()
