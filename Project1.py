@@ -9,6 +9,7 @@ from  matplotlib.colors import LinearSegmentedColormap
 import matplotlib.patches as mpatches
 import pandas as pd
 from itertools import combinations
+import math
 #import cProfile
 
 #Create colourmap for network graph
@@ -340,9 +341,10 @@ def PD(playerA,playerB,r):
     else:
         res = payoff(playerA.states[playerA.curstate],playerB.states[playerB.curstate])
     Astate = playerA.curstate
+    Bstate= playerB.curstate
     playerA.update(playerB.states[playerB.curstate])
     playerB.update(playerA.states[Astate])
-    return(res,playerA.states[Astate])
+    return(res,playerA.states[Astate], playerB.states[Bstate])
 
 #Function that lets two fsm play against each other
 #Input: two agents, continuation probability
@@ -352,7 +354,8 @@ def iteratedPD(playerA, playerB, alpha, r):
     #generate payoff vectors for both players
     payoffsA=[]
     payoffsB=[]
-    coops=[]
+    coopsA=[]
+    coopsB=[]
 
     #reset current state of both players to zero
     playerA.curstate=0
@@ -366,19 +369,19 @@ def iteratedPD(playerA, playerB, alpha, r):
         #append payoffs to the respective payoffvector
         payoffsA.append(temp[0][0])
         payoffsB.append(temp[0][1])
-        coops.append(temp[1])
+        coopsA.append(temp[1])
+        coopsB.append(temp[2])
         rn=random.uniform(0,1)#chance of alpha to go into next round
         count+=1
-        
-    #calculate average payoff for both players
-    resA=sum(payoffsA)/count
-    resB=sum(payoffsB)/count
-    return(payoffsA,payoffsB,coops,count)
+
+    return(payoffsA,payoffsB,coopsA,count,coopsB)
 
 #Function that simulates one generation of iterated PD in a Network
 #Input: list with agents, amount of rounds to be played in gen, continuation probability, network 
 #Output: list with updated agents
 def genNetwPD(players,rounds,alpha,G):
+    edgecoop = pd.DataFrame(0, index=G.edges(),columns=["coops", "plays","coopav"])#generate dataframe to store edgecooperation values
+    #rownames are tuple of nodes connected by edge, then one column for cooperation and one for number of rounds
     for pl in players:  #create cooperation and point lists for all agents
         pl.coops=[]
         pl.points=[]
@@ -391,7 +394,6 @@ def genNetwPD(players,rounds,alpha,G):
             neighbours=list(G[node].keys())
             selected_neighbour = random.choices(neighbours,weights=neiweights)[0] # then selects one neighbour from the list
             #adjalpha = alpha**(10/int(G[node][selected_neighbour]['weight'])) #adjust alpha to scale with weight of connection
-            r=0
             if kins:
                 try:
                     r = R.edges[node,selected_neighbour]['weight'] 
@@ -400,13 +402,21 @@ def genNetwPD(players,rounds,alpha,G):
             temp = iteratedPD(players[node],players[selected_neighbour],alpha, r)  #play iterated PD against selected neighbour
             players[node].points += temp[0]
             players[node].coops += temp[2]
-        
+            cooptemp = sum(temp[2]) + sum(temp[4])
+            try:
+                edgecoop.at[(node, selected_neighbour), "coops"]+=cooptemp
+                edgecoop.at[(node, selected_neighbour), "plays"]+=temp[3]
+            except:
+                edgecoop.at[(selected_neighbour, node), "coops"]+=cooptemp
+                edgecoop.at[(selected_neighbour, node), "plays"]+=temp[3]
+    edgecoop.at[:,"coopav"]=edgecoop["coops"]/(2*edgecoop["plays"])
     for pl in players:  #calculate average cooperationrate and average points for each player
         pl.coopratio= round(sum(pl.coops)/len(pl.coops),5)
         pl.points = round(sum(pl.points)/len(pl.points),5)
-    return(players)        
+
+    return(players, edgecoop["coopav"])        
         
-#Function that simulates gens amount of ll of iterated PD over a network
+#Function that simulates gens amount of generations of iterated PD over a network
 #Input: list with agents, number of rounds per gen, number of generation, continuation prob, network
 #Outpu: cool graphs/animations
 def simNetwPD(players,rounds,gens,alpha,G):
@@ -415,10 +425,12 @@ def simNetwPD(players,rounds,gens,alpha,G):
     genscoops= []   #keep track of average cooperation rate per generation
     gencomps=[]
     nodescoop =np.zeros((gens,nx.number_of_nodes(G)))
-    for k in range(gens): 
-        players=genNetwPD(players,rounds,alpha,G) #let Agents play the generation
+    edgescoop = pd.DataFrame(0, index=G.edges(),columns=np.arange(gens))
 
-        #players.sort(reverse=True,key = lambda neuraln: neuraln.points) #sort agents by their payoff
+    for k in range(gens): 
+        temp = genNetwPD(players,rounds,alpha,G) #let Agents play the generation
+        players= temp[0]
+        edgescoop[k]=temp[1]
         coopratios=[pl.coopratio for pl in players] #create list with all cooperation rates
         comps=[len(pl.states) for pl in players]
         genscoops.append(statistics.mean(coopratios))   #add average cooperation rate of generation to list
@@ -464,19 +476,13 @@ def simNetwPD(players,rounds,gens,alpha,G):
             visfsm(popwatched[0][0]) #add most abundant agent to plot
             plt.pause(0.01)
             plt.clf()
-        nodescoop[ (k,)]=np.asarray(coopratios)
+        nodescoop[(k,)]=np.asarray(coopratios)
         if ifmoran:
             players = moran(players)
         else:
             players = kill(players) #kill players
         players = NWrepopulate(players,G) #repopulate players
-    #plt.show()
-    avnodescoop=[statistics.mean(nodescoop[:,n]) for n in range(nx.number_of_nodes(G))]
-
-    genscoops=[statistics.mean(nodescoop[gen,:]) for gen in range(gens)]
-
-    
-    return(nodescoop)#genscoops)
+    return(nodescoop, edgescoop)
 
 #Function that simulates sim amount of simNetwPD
 #Input: Complexity, number of rounds per gen, continuation prob, number of generations, Network
@@ -484,6 +490,7 @@ def simNetwPD(players,rounds,gens,alpha,G):
 def xsims(comp,rounds, gens, alpha, G, sims):
     coopstats =np.zeros((sims,gens))
     nodecoopstats = np.zeros((sims,nx.number_of_nodes(G)))
+    edgecoopstats = pd.DataFrame(0, index=G.edges(),columns=np.arange(sims))
     finalpop=[]
 
     #If there is interest in the population dynamics, keeps all the players at different times
@@ -511,14 +518,24 @@ def xsims(comp,rounds, gens, alpha, G, sims):
         #create the agents for the simulation
         for j in range(nx.number_of_nodes(G)):
             agents.append(fsm(comp))       #Randomly create nodes
-        nodescoop=simNetwPD(agents,rounds,gens,alpha,G)
+        temp=simNetwPD(agents,rounds,gens,alpha,G)
+        nodescoop=temp[0]
+        edgescoop=temp[1]
         coopstats[sim,]=np.asarray([statistics.mean(nodescoop[gen,:]) for gen in range(gens)])
         nodecoopstats[sim,]=np.asarray([statistics.mean(nodescoop[:,n]) for n in range(nx.number_of_nodes(G))])
+        
+        #Calculate the average cooperation rate of each edge over the simulation
+        for edge in range(nx.number_of_edges(G)):
+            temp=[n for n in edgescoop.iloc[edge] if n==n]
+            if len(temp)>0:
+                edgecoopstats.iloc[edge,sim]=statistics.mean(temp)
+
         plt.plot(coopstats[sim,:], color="lightsteelblue")
         avcoop=[]
         sdcoop=[]
         avnodecoop=[statistics.mean(nodecoopstats[:,n])for n in range(nx.number_of_nodes(G))]
         finalpop=finalpop+agents
+
     for gen in range(gens):
         avcoop.append(statistics.mean(coopstats[:,gen]))
         sdcoop.append(statistics.stdev(coopstats[:,gen]))
@@ -659,6 +676,8 @@ def xsims(comp,rounds, gens, alpha, G, sims):
     #save coopstats:
     DF = pd.DataFrame(coopstats)
     DF.to_csv(F"C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/coopstats{i}.csv")
+    #save edgecoopstats:
+    edgecoopstats.to_csv(F"C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/Edgecoopstats{i}.csv")
     return(avcoop)
     #plt.show()
 
@@ -670,13 +689,13 @@ G = nx.read_weighted_edgelist(net,nodetype = int) #read in network
 
 Rnet = 'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/Redglist.txt'
 R = nx.read_weighted_edgelist(Rnet, nodetype = int)
-
+'''
 Hadzanet = 'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/HadzaNetwork/HoneyHadza.txt'
 G = nx.read_weighted_edgelist(Hadzanet, nodetype=int)
 
 HadzaRnet = 'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/HadzaNetwork/HoneyRHadza.txt'
 R = nx.read_weighted_edgelist(HadzaRnet, nodetype=int)
-'''
+
 largest_cc = max(nx.connected_components(G), key=len)
 G=G.subgraph(largest_cc).copy()
 nx.set_edge_attributes(G, values = 1, name = 'weight')
@@ -748,7 +767,7 @@ lines = 'Simulation parameters:'
 with open('C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/siminfo.txt', 'w') as f:
     f.write(lines)
 metacops=[]
-for i in range(17):
+for i in range(1):
     b = 5
     c = 1
     povec=(b,b-c,0,-c)
@@ -757,10 +776,10 @@ for i in range(17):
     topcomp=3
     chostrats=[posstrats[0]]
     mutmode = 0
-    rounds=1
+    rounds=2
     gens = 500
     alpha=0.9
-    sims = 10
+    sims = 100
     kins = 0
     popint=0
     mincomp=1
@@ -768,18 +787,18 @@ for i in range(17):
     #G = nx.watts_strogatz_graph(size, int(2*edges/size), 0.1)#int(2*edges/size)
     #nx.set_edge_attributes(G, values = 1, name = 'weight')
     #G = addWeights(weights,G)
-    pos = nx.spring_layout(G, seed=3113794652)
+    #pos = nx.spring_layout(G, seed=3113794652)
     
     if i<0:
         pass    
     else:
         
         net = f'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/SMWnets/smw{i}.txt'
-        G = nx.read_weighted_edgelist(net,nodetype = int) #read in network
-        #G = nx.watts_strogatz_graph(size, int(2*edges/size), 0.02*(i))#int(edges/size)
+        #G = nx.read_weighted_edgelist(net,nodetype = int) #read in network
+        #G = nx.watts_strogatz_graph(1000,10,0)#size, int(2*edges/size), 0.02*(i))#int(edges/size)
         #G=nx.gnm_random_graph(size,edges)
-        nx.set_edge_attributes(G, values = 1, name = 'weight')
-        pos = nx.spring_layout(G, seed=3113794652)  # positions for all nodes
+        #nx.set_edge_attributes(G, values = 1, name = 'weight')
+        #pos = nx.spring_layout(G, seed=3113794652)  # positions for all nodes
         #G = addWeights(weights,G)
         
         pass
@@ -812,7 +831,7 @@ for rate in metacops:
         chostrats=[posstrats[0]]
     else:
         col="green"
-    plt.plot(rate, color=col,linewidth=2, label=f'Run: {count}')
+    plt.plot(rate,linewidth=2, label=f'Run: {count}')
     first =mpatches.Patch(color="red",label=f"Hadza Honey Network")
     second = mpatches.Patch(color="green",label=f"Randomized Hadza Honey Networks")
     plt.ylim(0,1)

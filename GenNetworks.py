@@ -18,7 +18,49 @@ def rearange(n,k):
         res[r] += 1
     return(res)
 
-        
+#Function that is one step in creating a comparable lattice network for a given network
+#Input: Network G
+#Output: Network G that is more lattice like than the original one
+def onesteplatticeinator(G):
+    for node in range(G.number_of_nodes()):
+        for secnode in range(G.number_of_nodes()):
+            if secnode==node:
+                break
+            neighbours=list(G[node].keys())
+            neighbour = random.choice(neighbours)
+
+            secneighbours=list(G[secnode].keys())
+            secneighbour = random.choice(secneighbours)
+            if neighbour==secnode or secneighbour==node or neighbour==secneighbour:
+                break
+            if not(nodes_connected(G,node,secnode)) and not(nodes_connected(G, neighbour,secneighbour)) and abs(node-secnode)+abs(neighbour-secneighbour) <= abs(node-neighbour)+abs(secnode-secneighbour):
+                try:
+                    G.remove_edge(node,neighbour)
+                    G.remove_edge(secnode,secneighbour)
+                    G.add_edge(node, secnode)
+                    G.add_edge(neighbour, secneighbour)
+                except:
+                    print(node,neighbour, secnode, secneighbour)
+    return(G)  
+
+#Function that creates a comparable lattice network for a given network
+#Input: Network G
+#Output: Network F that is a comparable lattice network to original G
+def latticeinator(G):
+    tries=0
+    while(tries<10):
+        orclus = nx.average_clustering(G)
+        newG = G.copy()
+        newG = onesteplatticeinator(newG)
+        newclus = nx.average_clustering(newG)
+        if newclus > orclus:
+            tries=0
+            G = newG
+            print(newclus)
+        if newclus < orclus:
+            tries+=1
+            print(tries)
+    return(G)
 
 #Function that randomizes a network
 #Input: Network
@@ -30,7 +72,6 @@ def randomizer(b):
     print(sum(totalweights))
     for node in range(F.number_of_nodes()):
         neighbours=(F[node].keys())
-        rec=list(neighbours)
         for neigh in range(len(neighbours)):
             check=[n for n in neighbours if n == neigh]
             if len(check)==1:
@@ -63,19 +104,7 @@ def randomizer(b):
                         m+=1
             else:
                 pass
-            
-            '''if len(list(nx.connected_components(F)))>1:
-                print([node,neighneigh],[neigh, nodeneigh])
-                print(neighbours)
-                print(rec)
-                pos = nx.spring_layout(F, seed=3113794652)
-                nx.draw_networkx_nodes(F,pos,node_color="red")
-                nx.draw_networkx_edges(F,pos)
-                nx.draw_networkx_labels(F,pos)
-                plt.show()
-                print([node,neighneigh],[neigh, nodeneigh])'''
-                
-    
+                  
     edgeslist=list(F.edges)
     weighsdic = dict.fromkeys(edgeslist,0)
     for beacon in beacons:
@@ -130,12 +159,20 @@ for i in range(nx.number_of_nodes(G)):
     mapping[nodelist[i]]=i
 G=nx.relabel_nodes(G, mapping) #relabel nodes 
 
+G=nx.gnm_random_graph(50,400)
 pos = nx.spring_layout(G, seed=3113794652)
 nx.draw_networkx_nodes(G,pos,node_color="red")
 nx.draw_networkx_edges(G,pos)
 nx.draw_networkx_labels(G,pos)
 plt.show()
-print(len(G.edges()))
+
+G=latticeinator(G)
+nx.draw_networkx_nodes(G,pos,node_color="red")
+nx.draw_networkx_edges(G,pos)
+nx.draw_networkx_labels(G,pos)
+plt.show()
+print(nx.average_clustering(G))
+quit()
 for i in range(0,100):
     F=randomizer(G)
     #nx.set_edge_attributes(F, values = 1, name = 'weight')
