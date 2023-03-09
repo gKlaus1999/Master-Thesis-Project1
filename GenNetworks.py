@@ -127,15 +127,43 @@ def randomizer(b):
     print(sum(totalweights))
     return(F)
 
+#Funtion that gets the Weights of a network
+#Input: Network
+#Output: list with all the weights
+def getWeights(R):
+    weights=nx.get_edge_attributes(R,'weight')
+    weights=list(weights.values())
+    random.shuffle(weights)
+    return(weights)
+
+#Function that adds weights to a network
+#Input: Weights and network
+#Output: Network with weights
+def addWeights(weights,G):
+    mapping = {}
+    edgelist=list(G.edges)
+    mapping=dict(zip(edgelist,weights))
+    nx.set_edge_attributes(G, values = mapping, name = 'weight')
+    return(G)
+
 #Function that randomizes the relationship network of a social network
 #Input: Social network, Relationship network
 #Output: Randomized Relationship network
 def Kinrandomizer(G,R):
-    pass
+    weights=getWeights(R)
+    edges=G.edges()
+    Redges=random.sample(edges, len(weights))
+    newR=nx.Graph()
+    for edge in Redges:
+        newR.add_edge(edge[0],edge[1])
+    newR = addWeights(weights,newR)
+    return(newR)
 
 net = 'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/agtanet.txt'
 G = nx.read_weighted_edgelist(net,nodetype = int) #read in network
 
+Rnet = 'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/Redglist.txt'
+R = nx.read_weighted_edgelist(Rnet, nodetype = int)
 '''
 Hadzanet = 'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/HadzaNetwork/CampHadza.txt'
 G = nx.read_edgelist(Hadzanet, nodetype=int)
@@ -152,6 +180,21 @@ G = nx.read_weighted_edgelist(Hadzanet, nodetype=int)
 
 
 #nx.set_edge_attributes(G, values = 1, name = 'weight')
+
+mapping = {}
+nodelist=list(G.nodes)
+for i in range(nx.number_of_nodes(G)):
+    mapping[nodelist[i]]=i
+G=nx.relabel_nodes(G, mapping) #relabel nodes 
+for i in range(2):
+    R=nx.read_weighted_edgelist(f"C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/AgtaRanR/AgtaRanR{i}.txt", nodetype=int)
+    R=nx.relabel_nodes(R,mapping)
+    nx.write_weighted_edgelist(R,f"C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/edgeAnalysis/AgtaRanRmapped{i}.txt")
+quit()
+for i in range(100):
+    newR=Kinrandomizer(G,R)
+    pos = nx.spring_layout(newR, seed=3113794652)
+    nx.write_weighted_edgelist(newR, f"C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/AgtaRanR/AgtaRanR{i}.txt")
 
 mapping = {}
 nodelist=list(G.nodes)

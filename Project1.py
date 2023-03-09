@@ -678,16 +678,18 @@ def xsims(comp,rounds, gens, alpha, G, sims):
     DF.to_csv(F"C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/coopstats{i}.csv")
     #save edgecoopstats:
     edgecoopstats.to_csv(F"C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/Edgecoopstats{i}.csv")
+    nodecoopstatspd = pd.DataFrame(nodecoopstats)
+    nodecoopstatspd.to_csv(F"C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/NodeCoopstats{i}.csv")
     return(avcoop)
     #plt.show()
 
 animate = 0 #1 if we want animation, 0 if not
 ifmoran = 0
 
-net = 'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/agtanet.txt'
+net = 'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/networks/agtanet.txt'
 G = nx.read_weighted_edgelist(net,nodetype = int) #read in network
 
-Rnet = 'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/Redglist.txt'
+Rnet = 'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/networks/Redglist.txt'
 R = nx.read_weighted_edgelist(Rnet, nodetype = int)
 '''
 Hadzanet = 'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/HadzaNetwork/HoneyHadza.txt'
@@ -763,11 +765,14 @@ plt.xlim(0,40)
 plt.ylim(0,20)
 plt.show()
 '''
+
+alphas = [0.999, 0.997, 0.995, 0.993, 0.99, 0.97, 0.95, 0.93, 0.9, 0.7, 0.5, 0.3, 0]
+
 lines = 'Simulation parameters:'
 with open('C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/siminfo.txt', 'w') as f:
     f.write(lines)
 metacops=[]
-for i in range(1):
+for i in range(2):
     b = 5
     c = 1
     povec=(b,b-c,0,-c)
@@ -777,8 +782,8 @@ for i in range(1):
     chostrats=[posstrats[0]]
     mutmode = 0
     rounds=2
-    gens = 500
-    alpha=0.9
+    gens = 1000
+    alpha=0
     sims = 100
     kins = 0
     popint=0
@@ -789,12 +794,14 @@ for i in range(1):
     #G = addWeights(weights,G)
     #pos = nx.spring_layout(G, seed=3113794652)
     
-    if i<0:
+    if i<1:
         pass    
     else:
-        
-        net = f'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/SMWnets/smw{i}.txt'
-        #G = nx.read_weighted_edgelist(net,nodetype = int) #read in network
+        kins=1
+        #alpha=0.9
+        #sims=10
+        #net = f'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/AgtaRanR/AgtaRanR{i}.txt'
+        #R = nx.read_weighted_edgelist(net,nodetype = int) #read in network
         #G = nx.watts_strogatz_graph(1000,10,0)#size, int(2*edges/size), 0.02*(i))#int(edges/size)
         #G=nx.gnm_random_graph(size,edges)
         #nx.set_edge_attributes(G, values = 1, name = 'weight')
@@ -830,15 +837,15 @@ for rate in metacops:
         col="red"
         chostrats=[posstrats[0]]
     else:
-        col="green"
-    plt.plot(rate,linewidth=2, label=f'Run: {count}')
-    first =mpatches.Patch(color="red",label=f"Hadza Honey Network")
-    second = mpatches.Patch(color="green",label=f"Randomized Hadza Honey Networks")
+        col="blue"
+    plt.plot(rate,linewidth=2, color=col)# label=f'asdfasdf')
+    first =mpatches.Patch(color="red",label=f"No Kin Selection")
+    second = mpatches.Patch(color="blue",label=f"Kin Selection")
     plt.ylim(0,1)
     plt.ylabel("Cooperation rate")
     plt.xlabel("Generation")
-    plt.legend(loc='upper right')#, handles=[first, second])
-    plt.title("Different Small World Networks")
+    plt.legend(loc='upper right', handles=[first, second])
+    plt.title("Impact of Kin Selection without direct reciprocity")
     count+=1
 plt.plot(metacops[0],linewidth=2,color="red")
 plt.savefig("C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/final.png")

@@ -108,12 +108,12 @@ G = nx.read_weighted_edgelist(Hadzanet, nodetype=int)
 HadzaRnet = 'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/HadzaNetwork/HoneyRHadza.txt'
 R = nx.read_weighted_edgelist(HadzaRnet, nodetype=int)
 '''
-print(nx.number_of_edges(G))
+
 largest_cc = min(nx.connected_components(G), key=len)
 #G=G.subgraph(largest_cc).copy()
 
 
-quit()
+
 
 nx.set_edge_attributes(G, values = 1, name = 'weight')
 
