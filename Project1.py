@@ -419,7 +419,8 @@ def genNetwPD(players,rounds,alpha,G):
 #Function that simulates gens amount of generations of iterated PD over a network
 #Input: list with agents, number of rounds per gen, number of generation, continuation prob, network
 #Outpu: cool graphs/animations
-def simNetwPD(players,rounds,gens,alpha,G):
+def simNetwPD(players,rounds,gens,alpha,orG):
+    G=orG.copy()
     if animate:
         anfig=plt.figure()
     genscoops= []   #keep track of average cooperation rate per generation
@@ -438,6 +439,27 @@ def simNetwPD(players,rounds,gens,alpha,G):
         payoffs=[pl.points for pl in players]       #create list with all payoffs
         #print(statistics.mean(coopratios))
         #print(statistics.mean(comps))
+
+        #indirect reciprocity:
+        if indRec:
+            for node in range(len(players)):
+                neighbours=list(G[node].keys())
+                totweight=0
+                points=[]
+                for neighbour in neighbours:
+                    points.append(players[neighbour].coopratio)
+                    weight = G.edges[node, neighbour]['weight']
+                    newweight = max(weight*0.9, 1)
+                    G.edges[node, neighbour]['weight']=newweight
+                    diffweight = weight - newweight
+                    totweight += diffweight
+                maxpoints=max(points)
+                maxpos=[q for q, u in enumerate(points) if u == maxpoints]
+                maxneighbours = [neighbours[l] for l in maxpos]
+                addweight = totweight/len(maxneighbours)
+                for maxneighbour in maxneighbours:
+                    G.edges[node, maxneighbour]['weight'] += addweight
+
         if popint:
             if k == 10:
                 global gen10pop
@@ -781,11 +803,12 @@ for i in range(2):
     topcomp=3
     chostrats=[posstrats[0]]
     mutmode = 0
-    rounds=2
-    gens = 1000
-    alpha=0
+    rounds=1
+    gens = 500
+    alpha=0.9
     sims = 100
     kins = 0
+    indRec = 0
     popint=0
     mincomp=1
 
@@ -797,7 +820,7 @@ for i in range(2):
     if i<1:
         pass    
     else:
-        kins=1
+        indRec = 1
         #alpha=0.9
         #sims=10
         #net = f'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/AgtaRanR/AgtaRanR{i}.txt'
@@ -816,7 +839,7 @@ for i in range(2):
         F'Generations = {gens}', F'Alpha = {alpha}', F'Simulations = {sims}', 
         F'Strategies = {chostrats}', F'Benefit to cost ration = {b/c}',
         F'Selection coefficient = {selcoeff}', F'Complexity = {topcomp}',
-        F'Mutation rate = {mutrate}', F'Mutation mode = {mutmode}', F'Kinselection = {kins}', '-----------------------']
+        F'Mutation rate = {mutrate}', F'Mutation mode = {mutmode}', F'Kinselection = {kins}', F'Indirect Reciprocity = {indRec}' '-----------------------']
     with open('C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/siminfo.txt', 'a') as f:
         for line in more_lines:
             f.write(line)
@@ -839,13 +862,13 @@ for rate in metacops:
     else:
         col="blue"
     plt.plot(rate,linewidth=2, color=col)# label=f'asdfasdf')
-    first =mpatches.Patch(color="red",label=f"No Kin Selection")
-    second = mpatches.Patch(color="blue",label=f"Kin Selection")
+    first =mpatches.Patch(color="red",label=f"No Indirect Reciprocity")
+    second = mpatches.Patch(color="blue",label=f"Indirect Reciprocity")
     plt.ylim(0,1)
     plt.ylabel("Cooperation rate")
     plt.xlabel("Generation")
     plt.legend(loc='upper right', handles=[first, second])
-    plt.title("Impact of Kin Selection without direct reciprocity")
+    plt.title("Impact of indirect reciprocity")
     count+=1
 plt.plot(metacops[0],linewidth=2,color="red")
 plt.savefig("C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/final.png")

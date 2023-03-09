@@ -188,7 +188,7 @@ for res in flatresults:
     if counter<1:
         col = "red"
     else:
-        col="green"
+        col="blue"
     sns.histplot(data=res, x=res, color=col, kde=True, bins = 100, stat='density')#, label=f'Alpha = {alphas[counter]}')
 
     mean=statistics.mean(res)
@@ -201,12 +201,12 @@ for res in flatresults:
             f.write(line)
             f.write('\n')
     counter+=1
-first =mpatches.Patch(color="red",label="No Kin Selection")
-second = mpatches.Patch(color="green",label=f"Kin Selection")
+first =mpatches.Patch(color="red",label="No Indirect Reciprocity")
+second = mpatches.Patch(color="blue",label=f"Indirect Reciprocity")
 plt.xlabel("Cooperation rate")
 plt.ylabel("Density")
 plt.xlim(0,1)
 plt.legend(loc='upper right', handles=[first, second]) 
-plt.title("Impact of Kin Selection without direct reciprocity")
+plt.title("Impact of indirect reciprocity")
 plt.show()
 
