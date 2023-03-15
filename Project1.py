@@ -22,6 +22,11 @@ class fsm:
         self.dim = dim      #How complex is the fsm
         self.points = 0     #Keep track of payoff
 
+        if Spec:    #Creat Specialization values for the agent
+            a=np.random.random(2)
+            a/=a.sum()
+            self.spec = a
+
         keys = [strats[p] for p in chostrats]
         key = random.choice(keys)
 
@@ -75,6 +80,14 @@ class fsm:
 
         #mutate the fsm
     def mutate(self):
+        #Mutate Specialization
+        specMutRate = 0.1
+        if Spec:
+            for i in range(len(self.spec)):
+                #addition of random variable based on normaldistribution with mean 0 and variance mut
+                self.spec[i]+=np.random.normal(0,specMutRate)
+            self.spec/=self.spec.sum()
+
         if mutmode ==1:
             keys = [strats[p] for p in chostrats]
             key = random.choice(keys)
@@ -205,26 +218,61 @@ def kinspayoff(stratA,stratB, r):
         result=[povec[0]+r*povec[3],povec[3]+r*povec[0]]#B gets played
     return (result)
 
+#calculates payoff of a round of PD with Specialization
+#input: tuple of 1s or 0s
+#output: tuple of two tuples with payoffs for both players
+def specpayoff(playerA, playerB):
+    stratA = playerA.states[playerA.curstate]
+    stratB = playerB.states[playerB.curstate]
+    mx = max(playerA.spec)
+    for o in range(len(playerA.spec)):
+        if playerA.spec[o]==mx:
+            maxpos = o
+    copy=np.delete(playerB.spec,maxpos)
+    mx = max(copy)
+    for o in range(len(playerB.spec)):
+        if playerB.spec[o]==mx and o !=maxpos:
+            maxposb = o
+    if stratA==stratB:
+        if stratA==1:
+            result = [[(1-c)*playerA.spec[maxpos],playerA.spec[maxposb]+b*playerB.spec[maxposb]],[(1-c)*playerB.spec[maxposb], playerB.spec[maxpos]+b*playerA.spec[maxpos]]]
+        else:
+            result = [[playerA.spec[maxpos],playerA.spec[maxposb]],[playerB.spec[maxposb], playerB.spec[maxpos]]]
+    elif stratA==1:
+        result = [[(1-c)*playerA.spec[maxpos], playerA.spec[maxposb]],[playerB.spec[maxposb], playerB.spec[maxpos]+b*playerA.spec[maxpos]]]
+    else:
+        result = [[playerA.spec[maxpos], playerA.spec[maxposb]+b*playerB.spec[maxposb]],[(1-c)*playerB.spec[maxposb], playerB.spec[maxpos]]]
+    return(result)
+
 #kill players based on their payoff
 #input: list with all the agents
 #output: list with players and 0s for killed agents
 def kill(players):
 
     count=0     #keep track how many get killed
+    cutoff = 0.2
 
     payoffs=[pl.points for pl in players]
+    
+    if Spec:
+        payoffs = [tupl[0]**specmod + tupl[1]**specmod for tupl in payoffs]
     av=statistics.mean(payoffs)
     sd=statistics.stdev(payoffs)
     #for different Selection type
     #minpayoff=random.choices(payoffs, weights= payoffs)[0]#Randomly choosef
     #players[payoffs.index(minpayoff)] = 0
-
-    for i in range(len(players)):
-        if np.random.uniform(0,1)<selcoeff:
-            if players[i].points<np.random.normal(av,sd+0.01) and count<len(players)-1:
-                players[i] = 0
-                count+=1
-    #print(count)
+    if Spec:
+        for fr in range(len(players)):
+            if np.random.uniform(0,1)<selcoeff:
+                if sum(players[fr].points)<np.random.normal(av,sd+0.01) and count<len(players)-1 or players[fr].points[0]<cutoff or players[fr].points[0]<cutoff:
+                    players[fr] = 0
+                    count+=1
+    else:
+        for fr in range(len(players)):
+            if np.random.uniform(0,1)<selcoeff:
+                if players[fr].points<np.random.normal(av,sd+0.01) and count<len(players)-1:
+                    players[fr] = 0
+                    count+=1
     return(players)
 
 #Moran Process
@@ -336,7 +384,9 @@ def addWeights(weights,G):
 #Input: two agents
 #Output: result for both players, updated state of player A
 def PD(playerA,playerB,r):
-    if kins:
+    if Spec:
+        res = specpayoff(playerA,playerB)
+    elif kins:
         res = kinspayoff(playerA.states[playerA.curstate],playerB.states[playerB.curstate],r)
     else:
         res = payoff(playerA.states[playerA.curstate],playerB.states[playerB.curstate])
@@ -412,7 +462,14 @@ def genNetwPD(players,rounds,alpha,G):
     edgecoop.at[:,"coopav"]=edgecoop["coops"]/(2*edgecoop["plays"])
     for pl in players:  #calculate average cooperationrate and average points for each player
         pl.coopratio= round(sum(pl.coops)/len(pl.coops),5)
-        pl.points = round(sum(pl.points)/len(pl.points),5)
+        if Spec:
+            t1=0
+            t2=0
+            temp1 = [f[0] for f in pl.points]
+            temp2 = [f[1]for f in pl.points]
+            pl.points = [round(sum(temp1)/len(temp1),3), round(sum(temp2)/len(temp2),3)]
+        else:
+            pl.points = round(sum(pl.points)/len(pl.points),5)
 
     return(players, edgecoop["coopav"])        
         
@@ -437,6 +494,8 @@ def simNetwPD(players,rounds,gens,alpha,orG):
         genscoops.append(statistics.mean(coopratios))   #add average cooperation rate of generation to list
         gencomps.append(statistics.mean(comps))
         payoffs=[pl.points for pl in players]       #create list with all payoffs
+        spec = [max(pl.spec) for pl in players]
+        #print(statistics.mean(spec))
         #print(statistics.mean(coopratios))
         #print(statistics.mean(comps))
 
@@ -809,11 +868,11 @@ lines = 'Simulation parameters:'
 with open('C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/siminfo.txt', 'w') as f:
     f.write(lines)
 metacops=[]
-for i in range(3):
+for i in range(5):
     net = f'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/networks/AgtaRanNet/AgtaRan{0}.txt'
     G = nx.read_weighted_edgelist(net,nodetype = int) #read in network
-    b = 5
-    c = 1
+    b = 0.8
+    c = 0.2
     povec=(b,b-c,0,-c)
     selcoeff = 0.4
     mutrate = 0.5
@@ -821,22 +880,22 @@ for i in range(3):
     chostrats=[posstrats[0]]
     mutmode = 0
     rounds=1
-    gens = 10000
+    gens = 500
     alpha=0
-    sims = 1
+    sims = 10
     kins = 0
     indRec = 0
     popint=0
     mincomp=1
-    chosrules = ["Net","IR"]
+    Spec = 1
+    chosrules = ["Net","DR"]
+    specmod=i+1
     #G = nx.watts_strogatz_graph(size, int(2*edges/size), 0.1)#int(2*edges/size)
     #nx.set_edge_attributes(G, values = 1, name = 'weight')
     #G = addWeights(weights,G)
     #pos = nx.spring_layout(G, seed=3113794652)
     if i ==1:
-        chosrules = ["Net","IR", "KS"]
-    if i == 2:
-        chosrules = ["Net", "IR", "DR"]
+        Spec = 1
     for rule in chosrules:#combs[i]:
         if rule == 'Net':
             net = 'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/networks/agtanet.txt'
@@ -848,6 +907,7 @@ for i in range(3):
             alpha = 0.9
         elif rule == 'KS':
             kins = 1
+
     print(f"---------{i}----------")
     metacops.append(xsims(topcomp,rounds,gens,alpha,G,sims)) #start simulation
     #Write down simulation parameters
@@ -881,14 +941,14 @@ for rate in metacops:
     else:
         col="green"
     plt.plot(rate,linewidth=2, color = col)#, label=f'Rules = {}')
-    first =mpatches.Patch(color="red",label=f"Network Reciprocity and Indirect Reciprocity")
-    second = mpatches.Patch(color="blue",label=f"Network Reciprocity, Indirect Reciprocity and Kin Selection")
+    first =mpatches.Patch(color="red",label=f"Network Reciprocity and Direct Reciprocity")
+    second = mpatches.Patch(color="blue",label=f"Network Reciprocity, Direct Reciprocity and Specialisation")
     third = mpatches.Patch(color="green", label =f"Network Reciprocity, Indirect and Direct Reciprocity")
     plt.ylim(0,1)
     plt.ylabel("Cooperation rate")
     plt.xlabel("Generation")
-    plt.legend(loc='upper right', handles=[first,second,third])
-    plt.title("Impact of indirect reciprocity")
+    plt.legend(loc='upper right', handles=[first,second])#,third])
+    plt.title("Impact of Specialisation")
     count+=1
 plt.plot(metacops[0],linewidth=2,color="red")
 plt.savefig("C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/final.png")
