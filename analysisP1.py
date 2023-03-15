@@ -3,6 +3,7 @@ from matplotlib import pyplot as plt
 import seaborn as sns
 import matplotlib.patches as mpatches
 import statistics
+from itertools import combinations
 
 #Produces a Plot of means and Standard deviation of cooperation over different alphas
 def AlphaPlot(alphas, means, stds):
@@ -155,12 +156,35 @@ def AlphaPlot4(alphas):
     plt.title("Dynamics of P-Value and Effect Size of the relationship between Frequency/Clustering Factor and cooperation over different alphas")
     plt.show()
 
+#Produces linear Regression between presence of different rules and cooperation levels
+def RuleReg(means,combs):
+    binKS = [0]*16
+    binIR = [0]*16
+    binDR = [0]*16 
+    binN = [0]*16
+    c = 0
+    for comb in combs:
+        for rule in comb:
+            if rule == "Net":
+                binN[c]=1
+            elif rule == "IR":
+                binIR[c] = 1
+            elif rule == "DR":
+                binDR[c] = 1
+            elif rule == "KS":
+                binKS[c] = 1
+        c+=1
+    df = pandas.DataFrame({'coop': means, 'Net': binN, 'IR': binIR, 'DR': binDR, 'KS': binKS})
+    df.to_csv('C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/DiffRules/linregdata.csv')
+    
+
+    pass
 
 
 
 
 flatresults=[]
-for j in range(2):
+for j in range(3):
     csvFile = pandas.read_csv(F'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/coopstats{j}.csv')
     col = len(csvFile.columns)
     csvFile = csvFile.iloc[:,100:col]
@@ -181,15 +205,24 @@ lines = 'Statistical Results:'
 with open('C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/Stats.txt', 'w') as f:
     f.write(lines)
 
+rules = ["Net","IR","DR","KS"]
+combs=[[]]
+for l in range(4):
+    combs +=list(combinations(rules,l+1))
+for q in range(len(combs)):
+    combs[q]=list(combs[q])
+
 counter=0
 means=[]
 stds=[]
 for res in flatresults:
-    if counter<1:
+    if counter==0:
         col = "red"
-    else:
+    elif counter == 1:
         col="blue"
-    sns.histplot(data=res, x=res, color=col, kde=True, bins = 100, stat='density')#, label=f'Alpha = {alphas[counter]}')
+    else:
+        col="green"
+    sns.histplot(data=res, x=res, kde=True, bins = 100, stat='density', color=col)#, label=f'Rules = {combs[counter]}')
 
     mean=statistics.mean(res)
     var=statistics.stdev(res)
@@ -201,12 +234,13 @@ for res in flatresults:
             f.write(line)
             f.write('\n')
     counter+=1
-first =mpatches.Patch(color="red",label="No Indirect Reciprocity")
-second = mpatches.Patch(color="blue",label=f"Indirect Reciprocity")
+first =mpatches.Patch(color="red",label=f"Network Reciprocity and Indirect Reciprocity")
+second = mpatches.Patch(color="blue",label=f"Network Reciprocity, Indirect Reciprocity and Kin Selection")
+third = mpatches.Patch(color="green", label =f"Network Reciprocity, Indirect and Direct Reciprocity")
 plt.xlabel("Cooperation rate")
 plt.ylabel("Density")
 plt.xlim(0,1)
-plt.legend(loc='upper right', handles=[first, second]) 
-plt.title("Impact of indirect reciprocity")
+plt.legend(loc='upper right', handles=[first, second,third]) 
+plt.title("Impact of the different rules")
 plt.show()
 

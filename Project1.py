@@ -459,6 +459,8 @@ def simNetwPD(players,rounds,gens,alpha,orG):
                 addweight = totweight/len(maxneighbours)
                 for maxneighbour in maxneighbours:
                     G.edges[node, maxneighbour]['weight'] += addweight
+            if k%100 == 0:
+                nx.write_weighted_edgelist(G,f"C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/NetworkSim{i}Gen{k}.txt")
 
         if popint:
             if k == 10:
@@ -560,7 +562,10 @@ def xsims(comp,rounds, gens, alpha, G, sims):
 
     for gen in range(gens):
         avcoop.append(statistics.mean(coopstats[:,gen]))
-        sdcoop.append(statistics.stdev(coopstats[:,gen]))
+        if len(coopstats[:,gen])==1:
+            sdcoop.append(0)
+        else:
+            sdcoop.append(statistics.stdev(coopstats[:,gen]))
     avcoop=np.asarray(avcoop)
     sdcoop=np.asarray(sdcoop)
     
@@ -585,7 +590,7 @@ def xsims(comp,rounds, gens, alpha, G, sims):
             visfsm(popwatch(finalpop)[z][0])
         except:
             print("meh")
-    fname = F"C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/sim_{i}_endpop.png"
+    fname = F"C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/endpopSim_{i}.png"
     plt.savefig(fname)  
     plt.clf()
 
@@ -788,13 +793,25 @@ plt.ylim(0,20)
 plt.show()
 '''
 
+rules = ["Net","IR","DR","KS"]
+'''
+combs=[[]]
+for l in range(4):
+    combs +=list(combinations(rules,l+1))
+for q in range(len(combs)):
+    combs[q]=list(combs[q])
+
+'''
+
 alphas = [0.999, 0.997, 0.995, 0.993, 0.99, 0.97, 0.95, 0.93, 0.9, 0.7, 0.5, 0.3, 0]
 
 lines = 'Simulation parameters:'
 with open('C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/siminfo.txt', 'w') as f:
     f.write(lines)
 metacops=[]
-for i in range(2):
+for i in range(3):
+    net = f'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/networks/AgtaRanNet/AgtaRan{0}.txt'
+    G = nx.read_weighted_edgelist(net,nodetype = int) #read in network
     b = 5
     c = 1
     povec=(b,b-c,0,-c)
@@ -804,34 +821,33 @@ for i in range(2):
     chostrats=[posstrats[0]]
     mutmode = 0
     rounds=1
-    gens = 500
-    alpha=0.9
-    sims = 100
+    gens = 10000
+    alpha=0
+    sims = 1
     kins = 0
     indRec = 0
     popint=0
     mincomp=1
-
+    chosrules = ["Net","IR"]
     #G = nx.watts_strogatz_graph(size, int(2*edges/size), 0.1)#int(2*edges/size)
     #nx.set_edge_attributes(G, values = 1, name = 'weight')
     #G = addWeights(weights,G)
     #pos = nx.spring_layout(G, seed=3113794652)
-    
-    if i<1:
-        pass    
-    else:
-        indRec = 1
-        #alpha=0.9
-        #sims=10
-        #net = f'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/AgtaRanR/AgtaRanR{i}.txt'
-        #R = nx.read_weighted_edgelist(net,nodetype = int) #read in network
-        #G = nx.watts_strogatz_graph(1000,10,0)#size, int(2*edges/size), 0.02*(i))#int(edges/size)
-        #G=nx.gnm_random_graph(size,edges)
-        #nx.set_edge_attributes(G, values = 1, name = 'weight')
-        #pos = nx.spring_layout(G, seed=3113794652)  # positions for all nodes
-        #G = addWeights(weights,G)
-        
-        pass
+    if i ==1:
+        chosrules = ["Net","IR", "KS"]
+    if i == 2:
+        chosrules = ["Net", "IR", "DR"]
+    for rule in chosrules:#combs[i]:
+        if rule == 'Net':
+            net = 'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/networks/agtanet.txt'
+            G = nx.read_weighted_edgelist(net,nodetype = int) #read in network
+            G=nx.relabel_nodes(G, mapping) #relabel nodes 
+        elif rule == 'IR':
+            indRec = 1
+        elif rule == 'DR':
+            alpha = 0.9
+        elif rule == 'KS':
+            kins = 1
     print(f"---------{i}----------")
     metacops.append(xsims(topcomp,rounds,gens,alpha,G,sims)) #start simulation
     #Write down simulation parameters
@@ -839,7 +855,8 @@ for i in range(2):
         F'Generations = {gens}', F'Alpha = {alpha}', F'Simulations = {sims}', 
         F'Strategies = {chostrats}', F'Benefit to cost ration = {b/c}',
         F'Selection coefficient = {selcoeff}', F'Complexity = {topcomp}',
-        F'Mutation rate = {mutrate}', F'Mutation mode = {mutmode}', F'Kinselection = {kins}', F'Indirect Reciprocity = {indRec}' '-----------------------']
+        F'Mutation rate = {mutrate}', F'Mutation mode = {mutmode}', F'Kinselection = {kins}', 
+        F'Indirect Reciprocity = {indRec}', F'Rules = {chosrules}', '-----------------------']
     with open('C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/siminfo.txt', 'a') as f:
         for line in more_lines:
             f.write(line)
@@ -856,18 +873,21 @@ for i in range(2):
 count=0
 
 for rate in metacops:
-    if count<1: 
+    if count==0: 
         col="red"
         chostrats=[posstrats[0]]
-    else:
+    elif count ==1:
         col="blue"
-    plt.plot(rate,linewidth=2, color=col)# label=f'asdfasdf')
-    first =mpatches.Patch(color="red",label=f"No Indirect Reciprocity")
-    second = mpatches.Patch(color="blue",label=f"Indirect Reciprocity")
+    else:
+        col="green"
+    plt.plot(rate,linewidth=2, color = col)#, label=f'Rules = {}')
+    first =mpatches.Patch(color="red",label=f"Network Reciprocity and Indirect Reciprocity")
+    second = mpatches.Patch(color="blue",label=f"Network Reciprocity, Indirect Reciprocity and Kin Selection")
+    third = mpatches.Patch(color="green", label =f"Network Reciprocity, Indirect and Direct Reciprocity")
     plt.ylim(0,1)
     plt.ylabel("Cooperation rate")
     plt.xlabel("Generation")
-    plt.legend(loc='upper right', handles=[first, second])
+    plt.legend(loc='upper right', handles=[first,second,third])
     plt.title("Impact of indirect reciprocity")
     count+=1
 plt.plot(metacops[0],linewidth=2,color="red")
