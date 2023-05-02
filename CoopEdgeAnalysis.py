@@ -25,7 +25,7 @@ print(mapping)
 
 
 j=1
-for j in range(2):
+for j in range(3):
     edgecoop = pandas.read_csv(F'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/Edgecoopstats{j}.csv')
 
     names = list(edgecoop.columns)
@@ -40,5 +40,5 @@ for j in range(2):
         temp.append(statistics.mean(edgecoop.loc[edge, np.arange(len(edgecoop.axes[1])-2)]))
     avcoop["coop"]=temp
     print(avcoop)
-    avcoop.to_csv(F'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/results/edgeAnalysis/KSnoDREdge/edgecoops{j}.csv')
+    avcoop.to_csv(F'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/edgecoops{j}.csv')
 quit()

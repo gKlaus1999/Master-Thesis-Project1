@@ -4,28 +4,30 @@ import seaborn as sns
 import matplotlib.patches as mpatches
 import statistics
 from itertools import combinations
+from scipy.stats import ttest_ind
 
 #Produces a Plot of means and Standard deviation of cooperation over different alphas
 def AlphaPlot(alphas, means, stds):
+    sns.reset_defaults()
     alphas=[1-n for n in alphas]
     basemean=means[0]
     basestd=stds[0]
-    means =[m/basemean for m in means]
-    stds = [s/basestd for s in stds]
+    #means =[m/basemean for m in means]
+    #stds = [s/basestd for s in stds]
     plt.xscale("log")
     plt.xlabel("1 - Alpha")
-    plt.ylabel("Normalized Cooperation Rate", color="blue")
+    plt.ylabel("Cooperation Rate", color="blue")
     plt.tick_params(axis="y", labelcolor="blue")
     plt.plot(alphas,means,color="blue", linestyle = "dashed")
 
     plt.twinx()
-    plt.ylabel("Normalized Standard Deviation", color = "red")
+    plt.ylabel("Standard Deviation", color = "red")
     plt.tick_params(axis="y", labelcolor="red")
     plt.plot(alphas,stds, linestyle="dashed", color="red")
 
 
-    first =mpatches.Patch(color="red",label="Normalized Standard Deviation")
-    third = mpatches.Patch(color="blue",label=f"Normalized Cooperation Rate")
+    first =mpatches.Patch(color="red",label="Standard Deviation")
+    third = mpatches.Patch(color="blue",label=f"Cooperation Rate")
     plt.legend(loc='upper right', handles=[first, third]) 
 
     plt.xlim(0.9*10**(-3),1.1)
@@ -184,18 +186,18 @@ def RuleReg(means,combs):
 
 
 flatresults=[]
-for j in range(3):
+for j in range(200):
     csvFile = pandas.read_csv(F'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/coopstats{j}.csv')
     col = len(csvFile.columns)
     csvFile = csvFile.iloc[:,100:col]
     x=csvFile.values.tolist()
     flatresults.append([item for sublist in x for item in sublist])
-
 alphas = [0.999, 0.997, 0.995, 0.993, 0.99, 0.97, 0.95, 0.93, 0.9, 0.7, 0.5, 0.3, 0]
-#first=[item for sublist in flatresults[0:99] for item in sublist]
-#second = [item for sublist in flatresults[1:101] for item in sublist]
+first=[item for sublist in flatresults[0:99] for item in sublist]
+second = [item for sublist in flatresults[100:200] for item in sublist]
 
-#flatresults = [flatresults[0], second]
+flatresults = [first, second]
+print(ttest_ind(flatresults[0], flatresults[1],equal_var=False))
 
 
 sns.set(style="darkgrid")
@@ -234,13 +236,13 @@ for res in flatresults:
             f.write(line)
             f.write('\n')
     counter+=1
-first =mpatches.Patch(color="red",label=f"Network Reciprocity and Indirect Reciprocity")
-second = mpatches.Patch(color="blue",label=f"Network Reciprocity, Indirect Reciprocity and Kin Selection")
-third = mpatches.Patch(color="green", label =f"Network Reciprocity, Indirect and Direct Reciprocity")
+first =mpatches.Patch(color="red",label=f"Randomized Agta Network")
+second = mpatches.Patch(color="blue",label=f"Randomized Agta Networks with Direct Reciprocity")
+third = mpatches.Patch(color="green", label =f"Multilevel Agta Network with Kin Selection")
 plt.xlabel("Cooperation rate")
 plt.ylabel("Density")
 plt.xlim(0,1)
-plt.legend(loc='upper right', handles=[first, second,third]) 
-plt.title("Impact of the different rules")
+plt.legend(loc='upper right', handles=[first, second]) 
+plt.title("Impact of Kin Selection")
 plt.show()
-
+#AlphaPlot(alphas,means,stds)

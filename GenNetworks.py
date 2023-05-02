@@ -1,6 +1,7 @@
 import networkx as nx
 import random
 from matplotlib import pyplot as plt
+import statistics
 
 #Function that checks if two nodes are connected:
 #Input: touple of nodes
@@ -127,6 +128,34 @@ def randomizer(b):
     print(sum(totalweights))
     return(F)
 
+#Function that randomizes the Weights of a network
+#Input: Network
+#Output: Network with randomized weights
+def weightRan(b):
+    F=b.copy()
+    beacons = list(F.degree(weight="weight"))
+    edgeslist=list(F.edges)
+    weighsdic = dict.fromkeys(edgeslist,0)
+    for beacon in beacons:
+        edges = F.edges(beacon[0])
+        ws = rearange(int(beacon[1]),len(edges))
+        #print(ws)
+        count=0
+        for edge in edges:
+            try:
+                weighsdic[edge] += ws[count]/2
+            except:
+                weighsdic[edge[::-1]] += ws[count]/2
+            count+=1
+    for key in weighsdic:
+        weighsdic[key]={"weight":weighsdic[key]}
+    
+    nx.set_edge_attributes(F,weighsdic)
+    beacons = F.degree(weight="weight")
+    totalweights = [beacon[1] for beacon in beacons]
+    return(F)
+
+
 #Funtion that gets the Weights of a network
 #Input: Network
 #Output: list with all the weights
@@ -159,10 +188,10 @@ def Kinrandomizer(G,R):
     newR = addWeights(weights,newR)
     return(newR)
 
-net = 'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/agtanet.txt'
+net = 'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/networks/agtanet.txt'
 G = nx.read_weighted_edgelist(net,nodetype = int) #read in network
 
-Rnet = 'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/Redglist.txt'
+Rnet = 'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/networks/Redglist.txt'
 R = nx.read_weighted_edgelist(Rnet, nodetype = int)
 '''
 Hadzanet = 'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/HadzaNetwork/CampHadza.txt'
@@ -186,11 +215,28 @@ nodelist=list(G.nodes)
 for i in range(nx.number_of_nodes(G)):
     mapping[nodelist[i]]=i
 G=nx.relabel_nodes(G, mapping) #relabel nodes 
+R=nx.relabel_nodes(R,mapping)
+
+weights = getWeights(G)
+size = nx.number_of_nodes(G)
+edges = nx.number_of_edges(G)
+for i in range(100):
+    F=nx.watts_strogatz_graph(size, int(2*edges/size), 0.1)
+    F=addWeights(weights,F)
+    for i in range(10):
+        F=weightRan(F)
+    B = Kinrandomizer(F,R)
+    nx.write_weighted_edgelist(B,f"C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/networks/AgtaSMW/AgtaRSMW{i}.txt")
+    nx.write_weighted_edgelist(F,f"C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/networks/AgtaSMW/AgtaSMW{i}.txt")
+
+
+
+quit()
 for i in range(2):
     R=nx.read_weighted_edgelist(f"C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/AgtaRanR/AgtaRanR{i}.txt", nodetype=int)
     R=nx.relabel_nodes(R,mapping)
     nx.write_weighted_edgelist(R,f"C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/edgeAnalysis/AgtaRanRmapped{i}.txt")
-quit()
+
 for i in range(100):
     newR=Kinrandomizer(G,R)
     pos = nx.spring_layout(newR, seed=3113794652)

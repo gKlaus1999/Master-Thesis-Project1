@@ -30,6 +30,12 @@ class fsm:
         keys = [strats[p] for p in chostrats]
         key = random.choice(keys)
 
+        if kins:
+            self.KSstates = list(np.random.randint(0,2,dim)) #Randomly create the different states. Can be either 1 = cooperate or 0 = defect
+
+            self.KScoop = list(np.random.randint(0,dim,dim))  # Randomly create the state changes if opponent cooperates
+
+            self.KSdefect = list(np.random.randint(0,dim,dim))#Randomly create the state changes if opponent defects
 
         if key == 0:
             self.states = list(np.random.randint(0,2,dim)) #Randomly create the different states. Can be either 1 = cooperate or 0 = defect
@@ -77,6 +83,11 @@ class fsm:
             self.curstate = self.coop[self.curstate]
         else:
             self.curstate = self.defect[self.curstate]
+    def KSupdate(self, coop):
+        if coop:
+            self.curstate = self.KScoop[self.curstate]
+        else:
+            self.curstate = self.KSdefect[self.curstate]
 
         #mutate the fsm
     def mutate(self):
@@ -86,6 +97,10 @@ class fsm:
             for i in range(len(self.spec)):
                 #addition of random variable based on normaldistribution with mean 0 and variance mut
                 self.spec[i]+=np.random.normal(0,specMutRate)
+                if self.spec[i]>1:
+                    self.spec[i]=1
+                elif self.spec[i]<0:
+                    self.spec[i]=0
             self.spec/=self.spec.sum()
 
         if mutmode ==1:
@@ -181,6 +196,58 @@ class fsm:
                 elif x==3:
                     temp = random.randint(0,len(self.states)-1)
                     self.states[temp]=random.randint(0,1)
+            if kins:
+                for i in range(1): #Possibility of multiple mutations
+                    x = random.randint(0,3) #Randomly choose one of the four possible mutation types
+                    if x==0 and len(self.KSstates)<topcomp:        #add one state
+                        pos = random.randint(0,len(self.KSstates)) #position of newly added state
+                        temp = random.randint(0,len(self.KSstates)-1) #choose random position to link to new state
+                        self.KSstates.insert(pos,random.randint(0,1)) #insert the new state
+                        for i in range(len(self.KScoop)): #relink all the arrows to correct state
+                            if self.KScoop[i] >= pos:
+                                self.KScoop[i]+=1
+                            if self.KSdefect[i] >= pos:
+                                self.KSdefect[i]+=1
+                        
+                        if random.randint(0,1)==1:  #add link to new state in random position
+                            self.KScoop[temp]=pos
+                        else:
+                            self.KSdefect[temp]=pos
+                        self.KScoop.insert(pos, random.randint(0,len(self.KSstates)-1)) 
+                        self.KSdefect.insert(pos, random.randint(0,len(self.KSstates)-1))
+
+                    #delete one state
+                    elif x==1 and len(self.KSstates)>mincomp:
+                        pos = random.randint(0,len(self.KSstates)-1)
+                        self.KSstates.pop(pos)
+                        self.KScoop.pop(pos)
+                        self.KSdefect.pop(pos)
+
+                        for i in range(len(self.KScoop)): 
+                            if self.KScoop[i] == pos:     
+                                self.KScoop[i]=random.randint(0,len(self.KSstates)-1) #if arrow to deleted state make random arrow
+                            elif self.KScoop[i]>pos:
+                                self.KScoop[i]-=1     #if arrow to state bigger than deleted make -1 so it still goes to same state
+                            if self.KSdefect[i] == pos:
+                                self.KSdefect[i]=random.randint(0,len(self.KSstates)-1)
+                            elif self.KSdefect[i]>pos:
+                                self.KSdefect[i]-=1
+                    if self.curstate>len(self.KSstates)-1:
+                        self.curstate-=1
+
+                    #Redraw one random arrow
+                    elif x==2:
+                        temp = random.randint(0,len(self.KSstates)-1) #choose random position to redraw arrow
+                        if random.randint(0,1)==1:  #change one arrow
+                            self.KScoop[temp]=random.randint(0,len(self.KSstates)-1)
+                        else:
+                            self.KSdefect[temp]=random.randint(0,len(self.KSstates)-1)
+
+                    #Change one random state
+                    elif x==3:
+                        temp = random.randint(0,len(self.KSstates)-1)
+                        self.KSstates[temp]=random.randint(0,1)
+
 
 #calculates payoff of a round of PD
 #input: tuple of 1 or 0
@@ -386,15 +453,31 @@ def addWeights(weights,G):
 def PD(playerA,playerB,r):
     if Spec:
         res = specpayoff(playerA,playerB)
+    elif kins2 and r>0:
+        res = kinspayoff(playerA.KSstates[playerA.curstate], playerB.KSstates[playerB.curstate],r)
+        Astate = playerA.curstate
+        Bstate= playerB.curstate
+        playerA.KSupdate(playerB.KSstates[playerB.curstate])
+        playerB.KSupdate(playerA.KSstates[Astate])
+        newAstate = playerA.KSstates[Astate]
+        newBstate = playerB.KSstates[Bstate]
     elif kins:
         res = kinspayoff(playerA.states[playerA.curstate],playerB.states[playerB.curstate],r)
+        Astate = playerA.curstate
+        Bstate= playerB.curstate
+        playerA.update(playerB.states[playerB.curstate])
+        playerB.update(playerA.states[Astate])
+        newAstate = playerA.states[Astate]
+        newBstate = playerB.states[Bstate]
     else:
         res = payoff(playerA.states[playerA.curstate],playerB.states[playerB.curstate])
-    Astate = playerA.curstate
-    Bstate= playerB.curstate
-    playerA.update(playerB.states[playerB.curstate])
-    playerB.update(playerA.states[Astate])
-    return(res,playerA.states[Astate], playerB.states[Bstate])
+        Astate = playerA.curstate
+        Bstate= playerB.curstate
+        playerA.update(playerB.states[playerB.curstate])
+        playerB.update(playerA.states[Astate])
+        newAstate = playerA.states[Astate]
+        newBstate = playerB.states[Bstate]
+    return(res,newAstate, newBstate)
 
 #Function that lets two fsm play against each other
 #Input: two agents, continuation probability
@@ -457,8 +540,8 @@ def genNetwPD(players,rounds,alpha,G):
                 edgecoop.at[(node, selected_neighbour), "coops"]+=cooptemp
                 edgecoop.at[(node, selected_neighbour), "plays"]+=temp[3]
             except:
-                edgecoop.at[(selected_neighbour, node), "coops"]+=cooptemp
-                edgecoop.at[(selected_neighbour, node), "plays"]+=temp[3]
+                edgecoop.at[(selected_neighbour,node), "coops"]+=cooptemp
+                edgecoop.at[(selected_neighbour,node), "plays"]+=temp[3]
     edgecoop.at[:,"coopav"]=edgecoop["coops"]/(2*edgecoop["plays"])
     for pl in players:  #calculate average cooperationrate and average points for each player
         pl.coopratio= round(sum(pl.coops)/len(pl.coops),5)
@@ -483,7 +566,9 @@ def simNetwPD(players,rounds,gens,alpha,orG):
     genscoops= []   #keep track of average cooperation rate per generation
     gencomps=[]
     nodescoop =np.zeros((gens,nx.number_of_nodes(G)))
+    specstats = np.zeros((gens, nx.number_of_nodes(G)))
     edgescoop = pd.DataFrame(0, index=G.edges(),columns=np.arange(gens))
+    edg=list(G.edges())
 
     for k in range(gens): 
         temp = genNetwPD(players,rounds,alpha,G) #let Agents play the generation
@@ -494,7 +579,9 @@ def simNetwPD(players,rounds,gens,alpha,orG):
         genscoops.append(statistics.mean(coopratios))   #add average cooperation rate of generation to list
         gencomps.append(statistics.mean(comps))
         payoffs=[pl.points for pl in players]       #create list with all payoffs
-        spec = [max(pl.spec) for pl in players]
+        if Spec:
+            spec = [max(pl.spec) for pl in players]
+            specstats[(k,)]=np.asarray(spec)
         #print(statistics.mean(spec))
         #print(statistics.mean(coopratios))
         #print(statistics.mean(comps))
@@ -506,7 +593,6 @@ def simNetwPD(players,rounds,gens,alpha,orG):
                 totweight=0
                 points=[]
                 for neighbour in neighbours:
-                    points.append(players[neighbour].coopratio)
                     weight = G.edges[node, neighbour]['weight']
                     newweight = max(weight*0.9, 1)
                     G.edges[node, neighbour]['weight']=newweight
@@ -518,7 +604,7 @@ def simNetwPD(players,rounds,gens,alpha,orG):
                 addweight = totweight/len(maxneighbours)
                 for maxneighbour in maxneighbours:
                     G.edges[node, maxneighbour]['weight'] += addweight
-            if k%100 == 0:
+            if k%100 == 0 and WIR:
                 nx.write_weighted_edgelist(G,f"C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/NetworkSim{i}Gen{k}.txt")
 
         if popint:
@@ -565,13 +651,14 @@ def simNetwPD(players,rounds,gens,alpha,orG):
         else:
             players = kill(players) #kill players
         players = NWrepopulate(players,G) #repopulate players
-    return(nodescoop, edgescoop)
+    return(nodescoop, edgescoop, specstats)
 
 #Function that simulates sim amount of simNetwPD
 #Input: Complexity, number of rounds per gen, continuation prob, number of generations, Network
 #Output: cool graphs/animations
 def xsims(comp,rounds, gens, alpha, G, sims):
     coopstats =np.zeros((sims,gens))
+    specStats = np.zeros((sims,gens))
     nodecoopstats = np.zeros((sims,nx.number_of_nodes(G)))
     edgecoopstats = pd.DataFrame(0, index=G.edges(),columns=np.arange(sims))
     finalpop=[]
@@ -604,8 +691,11 @@ def xsims(comp,rounds, gens, alpha, G, sims):
         temp=simNetwPD(agents,rounds,gens,alpha,G)
         nodescoop=temp[0]
         edgescoop=temp[1]
+        spectemp = temp[2]
         coopstats[sim,]=np.asarray([statistics.mean(nodescoop[gen,:]) for gen in range(gens)])
         nodecoopstats[sim,]=np.asarray([statistics.mean(nodescoop[:,n]) for n in range(nx.number_of_nodes(G))])
+        if Spec:
+            specStats[sim,]=np.asarray([statistics.mean(spectemp[gen,:])for gen in range(gens)])
         
         #Calculate the average cooperation rate of each edge over the simulation
         for edge in range(nx.number_of_edges(G)):
@@ -639,6 +729,30 @@ def xsims(comp,rounds, gens, alpha, G, sims):
     plt.savefig(fname)  
     plt.clf()
 
+    #Create plot of Specialisation:
+    if Spec:
+        avspec = []
+        sdspec = []
+        for gen in range(gens):
+            avspec.append(statistics.mean(specStats[:,gen]))
+            sdspec.append(statistics.stdev(specStats[:,gen]))
+        avspec = np.asarray(avspec)
+        sdspec = np.asarray(sdspec)
+        plt.plot(avspec, linewidth=3, color = "blue")
+        plt.plot(avspec+sdspec, linewidth=2,color="blue", linestyle="dashed")
+        plt.plot(avspec-sdspec, linewidth=2,color="blue", linestyle="dashed")
+        plt.xlabel("Generations")
+        plt.ylim(0,1)
+        plt.ylabel("Specialisation \n Cooperation rate")
+        plt.plot(avcoop, linewidth=3, color="red")
+        plt.plot(avcoop+sdcoop,linewidth=2, color="red", linestyle="dashed")
+        plt.plot(avcoop-sdcoop,linewidth=2, color="red", linestyle="dashed")
+        first =mpatches.Patch(color="blue",label="Specialisation Score")
+        second = mpatches.Patch(color="red",label=f"Cooperation Rate")
+        plt.legend(loc="upper right", handles=[first,second])
+        fname = F"C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/SpecSim_{i}.png"
+        plt.savefig(fname)  
+        plt.clf()
     #create plot of final population
     figfsm.set_figwidth(4)
     figfsm.set_figheight(15)
@@ -868,7 +982,7 @@ lines = 'Simulation parameters:'
 with open('C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/siminfo.txt', 'w') as f:
     f.write(lines)
 metacops=[]
-for i in range(5):
+for i in range(200):
     net = f'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/networks/AgtaRanNet/AgtaRan{0}.txt'
     G = nx.read_weighted_edgelist(net,nodetype = int) #read in network
     b = 0.8
@@ -880,22 +994,21 @@ for i in range(5):
     chostrats=[posstrats[0]]
     mutmode = 0
     rounds=1
-    gens = 500
+    gens = 250
     alpha=0
     sims = 10
     kins = 0
     indRec = 0
     popint=0
     mincomp=1
-    Spec = 1
-    chosrules = ["Net","DR"]
-    specmod=i+1
+    Spec = 0
+    kins2=0
+    chosrules = []
+    specmod=5
     #G = nx.watts_strogatz_graph(size, int(2*edges/size), 0.1)#int(2*edges/size)
     #nx.set_edge_attributes(G, values = 1, name = 'weight')
     #G = addWeights(weights,G)
     #pos = nx.spring_layout(G, seed=3113794652)
-    if i ==1:
-        Spec = 1
     for rule in chosrules:#combs[i]:
         if rule == 'Net':
             net = 'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/networks/agtanet.txt'
@@ -907,7 +1020,13 @@ for i in range(5):
             alpha = 0.9
         elif rule == 'KS':
             kins = 1
-
+    if i <100:
+        net = f'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/networks/AgtaRanNet/AgtaRan{i}.txt'
+        G = nx.read_weighted_edgelist(net,nodetype = int) #read in networ 
+    else:
+        net = f'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/networks/AgtaRanNet/AgtaRan{i-100}.txt'
+        G = nx.read_weighted_edgelist(net,nodetype = int) #read in networ 
+        alpha = 0.9
     print(f"---------{i}----------")
     metacops.append(xsims(topcomp,rounds,gens,alpha,G,sims)) #start simulation
     #Write down simulation parameters
@@ -916,7 +1035,7 @@ for i in range(5):
         F'Strategies = {chostrats}', F'Benefit to cost ration = {b/c}',
         F'Selection coefficient = {selcoeff}', F'Complexity = {topcomp}',
         F'Mutation rate = {mutrate}', F'Mutation mode = {mutmode}', F'Kinselection = {kins}', 
-        F'Indirect Reciprocity = {indRec}', F'Rules = {chosrules}', '-----------------------']
+        F'Indirect Reciprocity = {indRec}', F'Specialisation = {Spec}', F'Specialisation Modifier = {specmod}', F'Rules = {chosrules}', '-----------------------']
     with open('C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/siminfo.txt', 'a') as f:
         for line in more_lines:
             f.write(line)
@@ -933,23 +1052,21 @@ for i in range(5):
 count=0
 
 for rate in metacops:
-    if count==0: 
+    if count<100: 
         col="red"
-        chostrats=[posstrats[0]]
-    elif count ==1:
+    elif count >99:
         col="blue"
     else:
         col="green"
-    plt.plot(rate,linewidth=2, color = col)#, label=f'Rules = {}')
-    first =mpatches.Patch(color="red",label=f"Network Reciprocity and Direct Reciprocity")
-    second = mpatches.Patch(color="blue",label=f"Network Reciprocity, Direct Reciprocity and Specialisation")
-    third = mpatches.Patch(color="green", label =f"Network Reciprocity, Indirect and Direct Reciprocity")
+    plt.plot(rate,linewidth=2, color = col)#, label=f'Specmodifier = {count}')
+    first =mpatches.Patch(color="red",label=f"Randomized Agta Networks")
+    second = mpatches.Patch(color="blue",label=f"Randomized Agta Networks with direct Reciprocity")
+    third = mpatches.Patch(color="green", label =f"Multilevel Agta Network with Kin Selection")
     plt.ylim(0,1)
     plt.ylabel("Cooperation rate")
     plt.xlabel("Generation")
-    plt.legend(loc='upper right', handles=[first,second])#,third])
-    plt.title("Impact of Specialisation")
+    plt.legend(loc='upper right', handles=[first,second])
+    plt.title("Impact of Direct Reciprocity")
     count+=1
-plt.plot(metacops[0],linewidth=2,color="red")
+#plt.plot(metacops[0],linewidth=2,color="red")
 plt.savefig("C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/final.png")
-
