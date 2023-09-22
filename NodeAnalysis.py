@@ -33,35 +33,33 @@ for i in range(nx.number_of_nodes(G)):
     mapping[nodelist[i]]=i
 G=nx.relabel_nodes(G, mapping) #relabel nodes 
 R=nx.relabel_nodes(R,mapping)
+for e in range(4):
+    for j in range(100):
+        nodecoop = pandas.read_csv(F'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/NodeCoopstats{e,j}.csv')
+        net = F'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/networks/AgtaRanNet/AgtaRan{j}.txt'
 
-for j in range(200):
-    nodecoop = pandas.read_csv(F'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/NodeCoopstats{j}.csv')
-    if j <100:
-        net = F'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/networks/AgtaSMW/AgtaSMW{j}.txt'
-    else:
-        net = F'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/networks/AgtaRanNet/AgtaRan{j-100}.txt'
-    G = nx.read_weighted_edgelist(net,nodetype = int) #read in network
-    degs=list(G.degree())
-    deg=[d[1] for d in degs]
-    clust=(list(nx.clustering(G, weight='weight').values()))
-    ecc=(list(nx.eccentricity(G).values()))
+        G = nx.read_weighted_edgelist(net,nodetype = int) #read in network
+        degs=list(G.degree())
+        deg=[d[1] for d in degs]
+        clust=(list(nx.clustering(G, weight='weight').values()))
+        ecc=(list(nx.eccentricity(G).values()))
 
-    names = list(nodecoop.columns)
-    names[0]="sim"
-    names[1:len(names)]=[int(n)for n in names[1:len(names)]]
-    nodecoop.columns=names
-    avcoop=pandas.DataFrame()
-    avcoop["nodes"]=names[1:len(names)]
+        names = list(nodecoop.columns)
+        names[0]="sim"
+        names[1:len(names)]=[int(n)for n in names[1:len(names)]]
+        nodecoop.columns=names
+        avcoop=pandas.DataFrame()
+        avcoop["nodes"]=names[1:len(names)]
 
-    temp = []
-    for node in range(len(nodecoop.axes[1])-1):
-        #print(nodecoop.loc[np.arange(len(nodecoop.axes[0])),node])
-        temp.append(statistics.mean(nodecoop.loc[np.arange(len(nodecoop.axes[0])),node]))
-    avcoop["coop"]=temp
-    avcoop["deg"]=deg
-    avcoop["clust"]=clust
-    avcoop["ecc"]=ecc
-    print(avcoop)
+        temp = []
+        for node in range(len(nodecoop.axes[1])-1):
+            #print(nodecoop.loc[np.arange(len(nodecoop.axes[0])),node])
+            temp.append(statistics.mean(nodecoop.loc[np.arange(len(nodecoop.axes[0])),node]))
+        avcoop["coop"]=temp
+        avcoop["deg"]=deg
+        avcoop["clust"]=clust
+        avcoop["ecc"]=ecc
+        print(e,j)
 
-    avcoop.to_csv(F'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/nodecoops{j}.csv')
+        avcoop.to_csv(F'C:/Users/klaus/Documents/Uni/Masterarbeit/Project 1/plots/nodecoops{e,j}.csv')
 quit()

@@ -33,50 +33,22 @@ aspl=[0.9199196865079364, 0.8970646984126984, 0.8172330952380952, 0.699489214285
 plt.xscale("log")
 plt.ylim(0.75,1.05)
 plt.xlabel("Rewiring Probability (p)")
-plt.ylabel("Cooperation Rate", color="blue")
-plt.tick_params(axis="y", labelcolor="blue")
-plt.plot(probs,means,color="blue", linestyle = "dashed")
+plt.ylabel("Cooperation Rate", color="mediumblue")
+plt.tick_params(axis="y", labelcolor="mediumblue")
+plt.plot(probs,means,color="mediumblue", linestyle = "dashed")
 
 plt.twinx()
 plt.ylabel("C(p)/C(0) \nL(p)/L(0)")
-plt.scatter(y=clusts,x=probs, marker="s", color="red")
-plt.scatter(y=aspl, x=probs, color="green")
+plt.scatter(y=clusts,x=probs, marker="s", color="darkred")
+plt.scatter(y=aspl, x=probs, color="orange")
 
 
-first =mpatches.Patch(color="red",label="Normalized Clustering Coefficient")
-second = mpatches.Patch(color="green",label=f"Normalized Average Shortest Path Length")
-third = mpatches.Patch(color="blue",label=f"Normalized Cooperation Rate")
+first =mpatches.Patch(color="darkred",label="Normalized Clustering Coefficient")
+second = mpatches.Patch(color="orange",label=f"Normalized Average Shortest Path Length")
+third = mpatches.Patch(color="mediumblue",label=f"Normalized Cooperation Rate")
 plt.legend(loc='upper right', handles=[first, second, third]) 
 
 plt.xlim(0.9*10**(-4),1.1)
 plt.title("Dynamics of the cooperation rate over the Small-World spectrum")
 plt.show()
 
-quit()
-nets=[]
-for i in range(21):
-    temp=[]
-    for j in range(10):
-        G = nx.watts_strogatz_graph(1000,10,probs[i])
-        temp.append(G)
-    nets.append(temp)
-print("generation of networks done")
-clusts=[]
-aspl=[]
-for net in nets:
-    tempclus=[]
-    tempaspl=[]
-    for acnet in net:
-        tempclus.append(nx.average_clustering(acnet))
-        tempaspl.append(nx.average_shortest_path_length(acnet))
-    clusts.append(statistics.mean(tempclus)/baseclus)
-    aspl.append(statistics.mean(tempaspl)/baseaspl)
-print(f"clustering:{clusts}")
-print(f"average shortest path length: {aspl}")
-plt.plot(means)
-plt.plot(clusts)
-plt.plot(aspl)
-plt.grid()
-plt.show()
-
-quit()
